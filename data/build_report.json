@@ -1,0 +1,62 @@
+{
+ "snapshot": "gzips/2023_03_16_07_02_35_data.tgz",
+ "scope": "all",
+ "cpi_reference_year": 2025,
+ "items": 12275,
+ "restaurants": 1743,
+ "dishes": 6196,
+ "year_range": [
+  1851,
+  2005
+ ],
+ "funnel": [
+  {
+   "step": "joined MenuItem/MenuPage/Menu/Dish",
+   "rows": 1329638
+  },
+  {
+   "step": "USD only (blank currency = USD)",
+   "rows": 1230268
+  },
+  {
+   "step": "year 1850-2010",
+   "rows": 1201811
+  },
+  {
+   "step": "price present and non-zero",
+   "rows": 777585
+  },
+  {
+   "step": "valid restaurant name",
+   "rows": 719877
+  },
+  {
+   "step": "valid dish name",
+   "rows": 703560
+  },
+  {
+   "step": "dish on >= 5 menus",
+   "rows": 488763
+  },
+  {
+   "step": "price outliers trimmed (per decade)",
+   "rows": 483877
+  },
+  {
+   "step": "deduped to dish/restaurant/year",
+   "rows": 226727
+  },
+  {
+   "step": "capped at 12 per dish",
+   "rows": 117997
+  },
+  {
+   "step": "capped at 8 per restaurant",
+   "rows": 12275
+  },
+  {
+   "step": "year covered by CPI table",
+   "rows": 12275
+  }
+ ]
+}

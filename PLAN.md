@@ -49,11 +49,11 @@
 1. Download CSVs; confirm dataset is still hosted
 2. Join: MenuItem → MenuPage → Menu, plus Dish
 3. Filter:
-   - [ ] USD only
-   - [ ] Year roughly 1850–2010
-   - [ ] Non-missing, non-zero prices
-   - [ ] Valid restaurant name
-   - [ ] Trim price outliers
+   - [x] USD only
+   - [x] Year roughly 1850–2010
+   - [x] Non-missing, non-zero prices
+   - [x] Valid restaurant name
+   - [x] Trim price outliers
 4. Normalize dish and restaurant names
 5. Add CPI-adjusted price column
 6. Export `items.json`
@@ -77,9 +77,9 @@
 
 ## 6. Build Phases
 ### Phase 1: Data
-- [ ] Cleaning script
-- [ ] `items.json` generated
-- [ ] Sample spot-checked
+- [x] Cleaning script
+- [x] `items.json` generated
+- [x] Sample spot-checked
 
 ### Phase 2: Core Game
 - [ ] Two-card layout
