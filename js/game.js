@@ -12,6 +12,10 @@ const YEARS_KEY = 'baa:years';
 /** Below this the deck cannot keep dealing fair pairs without repeating. */
 const MIN_CARDS = 60;
 
+/** Keeps the two thumbs from landing on the same year, where neither could be
+ *  grabbed to pull them apart again. */
+const MIN_SPAN = 5;
+
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const el = {
@@ -37,8 +41,8 @@ const el = {
   years: document.getElementById('years'),
   yearFrom: document.getElementById('year-from'),
   yearTo: document.getElementById('year-to'),
-  fromLabel: document.getElementById('from-label'),
-  toLabel: document.getElementById('to-label'),
+  rangeLabel: document.getElementById('range-label'),
+  rangeFill: document.getElementById('range-fill'),
   yearsCount: document.getElementById('years-count'),
   bestLabel: document.getElementById('best-label'),
 };
@@ -50,6 +54,7 @@ const state = {
   day: dayKey(),
   bounds: [0, 0],     // the years the data actually covers
   from: 0, to: 0,     // the years the player has chosen, endless only
+  saved: {},          // a parked run per mode, so the toggle is not a reset
 };
 
 /* Best streak ------------------------------------------------------------ */
@@ -207,6 +212,7 @@ function buildDeck() {
 }
 
 function newRound() {
+  delete state.saved[state.mode];
   state.deck = buildDeck();
   state.best = loadBest();
   showBest();
@@ -232,6 +238,8 @@ function prettyDay(key) {
 }
 
 function setMode(mode) {
+  const leaving = parkRun();
+  if (leaving) state.saved[state.mode] = leaving;
   state.mode = mode;
   const daily = mode === 'daily';
   el.modeDaily.classList.toggle('is-on', daily);
@@ -243,7 +251,9 @@ function setMode(mode) {
     ? `Today's menu - ${prettyDay(state.day)}. Everyone gets these same cards.`
     : 'A fresh shuffle every run. Set the years you want to play.';
   if (!daily) showYearCount();
-  newRound();
+
+  const parked = state.saved[mode];
+  if (parked) resumeRun(parked); else newRound();
 }
 
 /* Year range (endless only) ---------------------------------------------- */
@@ -264,18 +274,42 @@ function showYearCount() {
   return !short;
 }
 
-function readYearInputs() {
+/** Read both thumbs, stopping each at the other rather than letting them
+ *  swap roles mid-drag, and redraw the bar between them. */
+function readYearInputs(moved = null) {
+  const [lo, hi] = state.bounds;
   let from = Number(el.yearFrom.value);
   let to = Number(el.yearTo.value);
-  if (from > to) [from, to] = [to, from];   // dragging one past the other
+
+  // Dragged into each other, the thumb being moved pushes the other one along
+  // rather than stopping dead -- and only gives way once that one hits the end.
+  if (to - from < MIN_SPAN) {
+    if (moved === 'to') {
+      from = Math.max(lo, to - MIN_SPAN);
+      to = Math.max(to, from + MIN_SPAN);
+    } else {
+      to = Math.min(hi, from + MIN_SPAN);
+      from = Math.min(from, to - MIN_SPAN);
+    }
+    el.yearFrom.value = from;
+    el.yearTo.value = to;
+  }
+
   state.from = from;
   state.to = to;
-  el.fromLabel.textContent = from;
-  el.toLabel.textContent = to;
+  el.rangeLabel.textContent = `${from}\u2013${to}`;
+
+  const pct = (year) => ((year - lo) / (hi - lo)) * 100;
+  el.rangeFill.style.left = `${pct(from)}%`;
+  el.rangeFill.style.right = `${100 - pct(to)}%`;
+
+  // Pushed to the far end the thumbs overlap, and the later input wins the
+  // pointer; lift the low thumb there so it can still be dragged back.
+  el.yearFrom.style.zIndex = from >= hi - MIN_SPAN ? '3' : '';
 }
 
-function applyYears() {
-  readYearInputs();
+function applyYears(moved) {
+  readYearInputs(moved);
   writeStore(YEARS_KEY, `${state.from}-${state.to}`);
   if (showYearCount()) newRound();
 }
@@ -295,10 +329,13 @@ function setupYears() {
   el.yearTo.value = state.to;
   readYearInputs();
 
-  // Live label while dragging; rebuild the deck only once the handle is let go.
-  for (const input of [el.yearFrom, el.yearTo]) {
-    input.addEventListener('input', () => { readYearInputs(); showYearCount(); });
-    input.addEventListener('change', applyYears);
+  // Live label while dragging; rebuild the deck only once a thumb is let go.
+  for (const [input, which] of [[el.yearFrom, 'from'], [el.yearTo, 'to']]) {
+    input.addEventListener('input', () => {
+      readYearInputs(which);
+      showYearCount();
+    });
+    input.addEventListener('change', () => applyYears(which));
   }
 }
 
@@ -349,14 +386,55 @@ function endGame() {
     saveBest(state.best);
   }
   showBest();
+  state.note = beaten && state.streak > 0 ? 'A new best.' : `Best ${state.best}.`;
+  showEndScreen({ focus: true });
+}
+
+function showEndScreen({ focus = false } = {}) {
   el.finalStreak.textContent = state.streak;
-  el.finalNote.textContent = beaten && state.streak > 0
-    ? 'A new best.'
-    : `Best ${state.best}.`;
+  el.finalNote.textContent = state.note;
   el.prompt.textContent = '';
   el.controls.hidden = true;
   el.gameover.hidden = false;
-  el.again.focus();
+  state.locked = true;
+  if (focus) el.again.focus();
+}
+
+/* Parking a run ---------------------------------------------------------- */
+
+/** Everything needed to put a half-played run back on the board. The deck
+ *  carries its own cursor, so parking it is enough to resume mid-shuffle. */
+function parkRun() {
+  if (!state.left) return null;
+  return {
+    deck: state.deck, left: state.left, right: state.right,
+    streak: state.streak, note: state.note, over: !el.gameover.hidden,
+  };
+}
+
+function resumeRun(run) {
+  Object.assign(state, {
+    deck: run.deck, left: run.left, right: run.right,
+    streak: run.streak, note: run.note,
+  });
+  state.best = loadBest();
+  showBest();
+  el.share.textContent = 'Share';
+  el.streak.textContent = state.streak;
+
+  if (run.over) {
+    // Put the losing pair back as it was, price showing and marked wrong.
+    paint(el.left, state.left, { price: true, link: true });
+    paint(el.right, state.right, { price: true, fact: true });
+    el.right.classList.add('is-wrong');
+    showEndScreen();
+  } else {
+    render();
+    el.gameover.hidden = true;
+    el.controls.hidden = false;
+    state.locked = false;
+  }
+  dealIn();
 }
 
 /* Sharing ---------------------------------------------------------------- */
@@ -401,7 +479,7 @@ async function init() {
   try {
     const res = await fetch('data/items.json');
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    state.deck = await res.json();           // raw items; buildDeck shuffles them
+    state.all = await res.json();            // raw items; buildDeck shuffles them
   } catch (err) {
     // Most often: opened as a file:// URL, where fetch is blocked.
     el.prompt.textContent = 'Could not load the menu data. Serve the folder '
@@ -411,7 +489,6 @@ async function init() {
     return;
   }
 
-  state.all = state.deck;                    // init() parked the raw items here
   state.bounds = yearRange(state.all);
   setupYears();
 

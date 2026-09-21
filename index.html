@@ -26,17 +26,18 @@
   <p class="mode-note" id="mode-note"></p>
 
   <div class="years" id="years" hidden>
-    <div class="years-row">
-      <label for="year-from">From</label>
+    <p class="years-head">
+      <output id="range-label" for="year-from year-to"></output>
+      <span class="years-count" id="years-count"></span>
+    </p>
+    <div class="range">
+      <div class="range-track"></div>
+      <div class="range-fill" id="range-fill"></div>
+      <label class="visually-hidden" for="year-from">Earliest year</label>
       <input type="range" id="year-from" step="1">
-      <output for="year-from" id="from-label"></output>
-    </div>
-    <div class="years-row">
-      <label for="year-to">To</label>
+      <label class="visually-hidden" for="year-to">Latest year</label>
       <input type="range" id="year-to" step="1">
-      <output for="year-to" id="to-label"></output>
     </div>
-    <p class="years-count" id="years-count"></p>
   </div>
 
   <div class="board is-loading" id="board">

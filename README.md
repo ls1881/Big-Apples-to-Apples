@@ -38,11 +38,24 @@ date, so the day turns over at the player's midnight rather than UTC, and
 kept per day (`baa:daily:<date>`), so yesterday's number is not sitting next to
 today's cards.
 
-**Endless** reshuffles freshly each run and adds a year range. Narrowing it
-rebuilds the deck from just those years; the card count updates live, and below
-60 cards the range is refused rather than dealt, because the deck cannot keep
-finding fair pairs in a pool that small. The range is remembered
-(`baa:years`), but the mode is not - the daily is always the front door.
+**Endless** reshuffles freshly each run and adds a year range: one track with
+a thumb at each end. Narrowing it rebuilds the deck from just those years; the
+card count updates live, and below 60 cards the range is refused rather than
+dealt, because the deck cannot keep finding fair pairs in a pool that small.
+The range is remembered (`baa:years`), but the mode is not - the daily is
+always the front door.
+
+The range control is two native `input type="range"` elements stacked on one
+track, rather than a hand-rolled widget, so keyboard and screen-reader support
+come for free. The inputs take no pointer events; only their thumbs do. A thumb
+dragged into the other pushes it along and gives way only at the ends, and they
+are held `MIN_SPAN` years apart so they can never land on the same year, where
+neither could be grabbed to pull them apart.
+
+**Switching modes does not restart anything.** The run you leave is parked --
+deck, cursor, both cards and the streak - and put back when you return, a
+finished run included, end screen and all. Parking is per session: a reload
+starts the day fresh, though the day's best score is already saved.
 
 A narrow range and a long streak pull in opposite directions: by streak 15 the
 ramp wants cards 40+ years apart, which a 1940-1950 range cannot supply. The
