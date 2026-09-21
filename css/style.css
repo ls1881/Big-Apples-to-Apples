@@ -49,6 +49,89 @@ body {
 .score strong { color: var(--ink); font-size: 1.1rem; }
 .score-sep { opacity: 0.5; }
 
+/* Mode toggle and year range --------------------------------------------- */
+
+.modes {
+  display: inline-flex;
+  margin: 0 auto 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mode {
+  padding: 0.4rem 1.4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--faded);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.mode + .mode { border-left: 1px solid var(--rule); }
+.mode.is-on { background: var(--ink); color: var(--paper); }
+.mode:hover:not(.is-on) { background: var(--card); color: var(--ink); }
+
+.mode-note {
+  max-width: 32rem;
+  margin: 0 auto 1.5rem;
+  color: var(--faded);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.years {
+  max-width: 24rem;
+  margin: -0.75rem auto 1.5rem;
+  padding: 0.9rem 1.1rem 0.7rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+.years-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faded);
+}
+
+.years-row + .years-row { margin-top: 0.35rem; }
+.years-row label { width: 2.6rem; text-align: right; }
+.years-row output {
+  width: 3rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.years-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--ink);
+  min-width: 0;
+}
+
+.years-count {
+  margin: 0.6rem 0 0;
+  color: var(--faded);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.years-count.is-warning { color: var(--wrong); font-style: normal; }
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button:disabled:hover { background: var(--card); color: var(--ink); }
+
 /* Board ------------------------------------------------------------------ */
 
 .board {
@@ -204,48 +287,78 @@ footer a { color: inherit; }
   clip-path: inset(50%);
 }
 
-/* Narrow screens: stack the cards, and tighten everything enough that a
-   round fits on a phone without scrolling to see the reveal. */
+/* Narrow screens: stack the cards and tighten everything, so a round still
+   fits on a phone without scrolling to reach the buttons or see the reveal. */
 @media (max-width: 40rem) {
-  body { padding: 1.25rem 1rem 2rem; }
+  body { padding: 1rem 1rem 2rem; }
 
-  .board { flex-direction: column; align-items: center; gap: 0.6rem; }
+  .tagline { margin-bottom: 0.8rem; font-size: 0.88rem; }
+  .score { margin-bottom: 0.8rem; }
+
+  .modes { margin-bottom: 0.5rem; }
+  .mode { padding: 0.4rem 1.2rem; }
+  .mode-note { display: none; }        /* the toggle already names the mode */
+
+  .years { margin: 0 auto 0.8rem; padding: 0.6rem 0.8rem 0.5rem; }
+  .years-row label { width: 2.2rem; }
+  .years-row + .years-row { margin-top: 0.25rem; }
+  .years-count { margin-top: 0.4rem; }
+
   /* Stacked, the flex-basis of 16rem would apply to height, not width. */
-  .card { flex: 0 0 auto; width: 100%; min-height: 0; padding: 1.1rem 1.25rem; }
+  .board { flex-direction: column; align-items: center; gap: 0.4rem; }
+  .card { flex: 0 0 auto; width: 100%; min-height: 0; padding: 0.8rem 1.1rem; }
   .versus { align-self: center; margin: 0; }
 
-  .tagline { margin-bottom: 0.9rem; font-size: 0.9rem; }
-  .score { margin-bottom: 1.1rem; }
+  .dish { font-size: 1.05rem; }
+  .meta { margin-top: 0.3rem; font-size: 0.8rem; }
+  .price { margin-top: 0.5rem; padding-top: 0.5rem; font-size: 1.35rem; }
+  .fact { font-size: 0.76rem; }
 
-  .dish { font-size: 1.1rem; }
-  .meta { margin-top: 0.4rem; font-size: 0.82rem; }
-  .price { margin-top: 0.7rem; padding-top: 0.6rem; font-size: 1.5rem; }
-
-  .prompt { margin: 1.1rem auto 0.9rem; font-size: 0.92rem; }
+  .prompt { margin: 0.8rem auto 0.7rem; font-size: 0.9rem; }
   .controls { gap: 0.6rem; }
-  button { flex: 1 1 0; padding: 0.85rem 1rem; }   /* thumb-sized targets */
+  button { flex: 1 1 0; padding: 0.8rem 1rem; }   /* thumb-sized targets */
   .gameover-actions button { flex: 0 1 auto; }
 
-  footer { margin-top: 2rem; }
+  footer { margin-top: 1.5rem; }
 }
 
-/* Short screens (an old phone, or a landscape window): trim the furniture so
-   the cards and the buttons still land above the fold. The prompt stays -- it
-   is also where a data-loading failure gets reported. */
-@media (max-width: 40rem) and (max-height: 700px) {
-  body { padding-top: 0.75rem; }
-  .masthead h1 { font-size: 1.45rem; }
+/* Short screens (an older phone, or a landscape window): drop the furniture
+   that is not load-bearing. The prompt stays -- it is also where a data
+   loading failure gets reported. */
+@media (max-width: 40rem) and (max-height: 780px) {
+  body { padding-top: 0.6rem; }
+  .masthead h1 { font-size: 1.4rem; }
   .tagline { display: none; }
-  .score { margin-bottom: 0.7rem; }
+  .score { margin-bottom: 0.55rem; }
 
-  .board { gap: 0.35rem; }
-  .card { padding: 0.7rem 1rem; }
-  .dish { font-size: 1rem; }
-  .meta { margin-top: 0.25rem; font-size: 0.78rem; }
-  .price { margin-top: 0.4rem; padding-top: 0.4rem; font-size: 1.25rem; }
-  .fact { font-size: 0.75rem; }
+  .modes { margin-bottom: 0.4rem; }
+  .mode { padding: 0.35rem 1rem; }
+  .years { margin-bottom: 0.6rem; }
 
-  /* Headroom for a dish name that wraps to two lines. */
-  .prompt { margin: 0.6rem auto 0.55rem; }
-  footer { margin-top: 1.2rem; }
+  .board { gap: 0.3rem; }
+  .card { padding: 0.65rem 1rem; }
+  .dish { font-size: 0.98rem; }
+  .meta { margin-top: 0.2rem; font-size: 0.76rem; }
+  .price { margin-top: 0.35rem; padding-top: 0.35rem; font-size: 1.2rem; }
+  .fact { font-size: 0.72rem; }
+
+  .prompt { margin: 0.55rem auto 0.5rem; }
+  footer { margin-top: 1rem; }
+}
+
+/* Very short screens in endless mode: the year panel needs ~100px that a
+   568px-tall phone does not have. Give back the space that only earns its
+   keep in the side-by-side layout -- the "vs" divider, and the blank line
+   reserved under each price to keep the two cards' rules level. Stacked,
+   there is no rule to line up with. */
+@media (max-width: 40rem) and (max-height: 620px) {
+  .versus { display: none; }
+  .fact.is-empty { display: none; }
+
+  .masthead h1 { font-size: 1.25rem; }
+  .modes { margin-bottom: 0.3rem; }
+  .years { padding: 0.45rem 0.7rem 0.4rem; margin-bottom: 0.5rem; }
+  .years-count { margin-top: 0.3rem; font-size: 0.72rem; }
+  .card { padding: 0.55rem 0.9rem; }
+  .prompt { margin: 0.45rem auto 0.45rem; font-size: 0.85rem; }
 }

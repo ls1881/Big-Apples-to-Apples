@@ -13,10 +13,32 @@
   <h1>Big Apples to Apples</h1>
   <p class="tagline">A century of menus from the New York Public Library, compared anyway.</p>
   <p class="score">Streak <strong id="streak">0</strong><span id="best-wrap" hidden>
-    <span class="score-sep">&middot;</span> Best <strong id="best">0</strong></span></p>
+    <span class="score-sep">&middot;</span> <span id="best-label">Best</span>
+    <strong id="best">0</strong></span></p>
 </header>
 
 <main>
+  <div class="modes" role="group" aria-label="Game mode">
+    <button type="button" id="mode-daily" class="mode is-on" aria-pressed="true">Daily</button>
+    <button type="button" id="mode-endless" class="mode" aria-pressed="false">Endless</button>
+  </div>
+
+  <p class="mode-note" id="mode-note"></p>
+
+  <div class="years" id="years" hidden>
+    <div class="years-row">
+      <label for="year-from">From</label>
+      <input type="range" id="year-from" step="1">
+      <output for="year-from" id="from-label"></output>
+    </div>
+    <div class="years-row">
+      <label for="year-to">To</label>
+      <input type="range" id="year-to" step="1">
+      <output for="year-to" id="to-label"></output>
+    </div>
+    <p class="years-count" id="years-count"></p>
+  </div>
+
   <div class="board is-loading" id="board">
     <article class="card" id="left">
       <p class="dish"></p>

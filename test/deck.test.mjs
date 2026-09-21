@@ -4,7 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createDeck, draw, farEnough, fairPair, verdict, shuffle, NEAR_TIE,
-  difficultyFor, matchesRule, priceGap } from '../js/deck.js';
+  difficultyFor, matchesRule, priceGap, seedFrom, makeRng, dayKey, yearRange,
+  withinYears } from '../js/deck.js';
 
 const items = JSON.parse(readFileSync(new URL('../data/items.json', import.meta.url)));
 
@@ -115,5 +116,64 @@ test('every item carries the field the inflation fact needs', () => {
   for (const item of items) {
     assert.equal(typeof item.price_today, 'number');
     assert.ok(item.price_today >= item.price);
+  }
+});
+
+/* Daily challenge --------------------------------------------------------- */
+
+test('dayKey uses the local date, so the day turns over at local midnight', () => {
+  assert.equal(dayKey(new Date(2026, 8, 21, 0, 0)), '2026-09-21');
+  assert.equal(dayKey(new Date(2026, 8, 21, 23, 59)), '2026-09-21');
+  assert.equal(dayKey(new Date(2026, 0, 5)), '2026-01-05');    // zero padded
+});
+
+test('the seed is stable for a day and different the next', () => {
+  assert.equal(seedFrom('2026-09-21'), seedFrom('2026-09-21'));
+  assert.notEqual(seedFrom('2026-09-21'), seedFrom('2026-09-22'));
+});
+
+test('the same day deals the same run, a different day does not', () => {
+  const run = (day) => {
+    const deck = createDeck(items, makeRng(seedFrom(day)));
+    const out = [];
+    let left = draw(deck);
+    out.push(left.id);
+    for (let s = 0; s < 12; s++) {
+      left = draw(deck, left, s);
+      out.push(left.id);
+    }
+    return out.join(',');
+  };
+  assert.equal(run('2026-09-21'), run('2026-09-21'), 'daily run is not reproducible');
+  assert.notEqual(run('2026-09-21'), run('2026-09-22'));
+});
+
+/* Year range -------------------------------------------------------------- */
+
+test('withinYears keeps only the years asked for, inclusive', () => {
+  const picked = withinYears(items, 1940, 1960);
+  assert.ok(picked.length > 0);
+  assert.ok(picked.every((i) => i.year >= 1940 && i.year <= 1960));
+  assert.equal(picked.length, items.filter((i) => i.year >= 1940 && i.year <= 1960).length);
+  assert.equal(withinYears(items, 1900, 1900).every((i) => i.year === 1900), true);
+});
+
+test('yearRange reports the span the data actually covers', () => {
+  const [lo, hi] = yearRange(items);
+  assert.ok(lo >= 1850 && hi <= 2010 && lo < hi);
+  assert.equal(lo, Math.min(...items.map((i) => i.year)));
+  assert.equal(hi, Math.max(...items.map((i) => i.year)));
+});
+
+test('a narrow range still deals fair pairs, by relaxing the era rule', () => {
+  const slice = withinYears(items, 1940, 1950);        // far under 40 years apart
+  const deck = createDeck(slice, seeded(5));
+  let left = draw(deck);
+  for (let s = 0; s < 200; s++) {
+    const right = draw(deck, left, s);                 // late ramp wants 40+ years
+    assert.ok(right, 'draw came back empty');
+    assert.ok(right.year >= 1940 && right.year <= 1950, 'dealt outside the range');
+    assert.ok(fairPair(right, left, NEAR_TIE), `coin-flip pair at streak ${s}`);
+    left = right;
   }
 });

@@ -26,6 +26,26 @@ within a run.
 
 Play with the buttons, or the arrow keys.
 
+### Modes
+
+**Daily** is what opens by default: one fixed run per calendar day, the same
+cards in the same order for everyone. The seed is an FNV-1a hash of the local
+date, so the day turns over at the player's midnight rather than UTC, and
+"Play again" replays that same day rather than reshuffling. Its best score is
+kept per day (`baa:daily:<date>`), so yesterday's number is not sitting next to
+today's cards.
+
+**Endless** reshuffles freshly each run and adds a year range. Narrowing it
+rebuilds the deck from just those years; the card count updates live, and below
+60 cards the range is refused rather than dealt, because the deck cannot keep
+finding fair pairs in a pool that small. The range is remembered
+(`baa:years`), but the mode is not - the daily is always the front door.
+
+A narrow range and a long streak pull in opposite directions: by streak 15 the
+ramp wants cards 40+ years apart, which a 1940-1950 range cannot supply. The
+draw relaxes the era rule rather than repeating a card, so a tight range plays
+like a flatter difficulty curve.
+
 ### Difficulty
 
 `difficultyFor(streak)` in `js/deck.js` narrows a band rather than setting a
@@ -45,8 +65,8 @@ If no unused card fits the rule, the draw relaxes it (first the era, then the
 gap) rather than repeating a card. Over 6,800 simulated draws that fallback
 fired 0.1% of the time.
 
-The best streak is kept in `localStorage` under `baa:best`, and the game still
-works where that is unavailable. Animations are skipped for anyone with
+The endless best streak is kept in `localStorage` under `baa:best`, and the
+game still works where that is unavailable. Animations are skipped for anyone with
 `prefers-reduced-motion` set.
 ## Data pipeline (Phase 1)
 

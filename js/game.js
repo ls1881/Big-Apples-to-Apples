@@ -1,11 +1,16 @@
 /** Wires the deck to the page: render two cards, take a guess, keep a streak. */
 
-import { createDeck, draw, verdict, formatPrice } from './deck.js';
+import { createDeck, draw, verdict, formatPrice, makeRng, seedFrom, dayKey,
+  yearRange, withinYears } from './deck.js';
 
 /** How long the revealed price stays up before the board moves on. */
 const REVEAL_MS = 1600;
 const SLIDE_MS = 420;
 const BEST_KEY = 'baa:best';
+const YEARS_KEY = 'baa:years';
+
+/** Below this the deck cannot keep dealing fair pairs without repeating. */
+const MIN_CARDS = 60;
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -26,30 +31,62 @@ const el = {
   share: document.getElementById('share'),
   again: document.getElementById('again'),
   status: document.getElementById('status'),
+  modeDaily: document.getElementById('mode-daily'),
+  modeEndless: document.getElementById('mode-endless'),
+  modeNote: document.getElementById('mode-note'),
+  years: document.getElementById('years'),
+  yearFrom: document.getElementById('year-from'),
+  yearTo: document.getElementById('year-to'),
+  fromLabel: document.getElementById('from-label'),
+  toLabel: document.getElementById('to-label'),
+  yearsCount: document.getElementById('years-count'),
+  bestLabel: document.getElementById('best-label'),
 };
 
-const state = { deck: null, left: null, right: null, streak: 0, best: 0, locked: true };
+const state = {
+  deck: null, left: null, right: null, streak: 0, best: 0, locked: true,
+  all: [],            // every card, unfiltered
+  mode: 'daily',      // 'daily' | 'endless'
+  day: dayKey(),
+  bounds: [0, 0],     // the years the data actually covers
+  from: 0, to: 0,     // the years the player has chosen, endless only
+};
 
 /* Best streak ------------------------------------------------------------ */
 // localStorage throws in a private window or with site data blocked, and the
 // game works fine without it, so every access is optional.
 
-function loadBest() {
+/** Endless keeps one all-time best; the daily keeps a best per day, so
+ *  yesterday's score does not sit next to today's cards. */
+function bestKey() {
+  return state.mode === 'daily' ? `baa:daily:${state.day}` : BEST_KEY;
+}
+
+function readStore(key) {
   try {
-    return Number(window.localStorage.getItem(BEST_KEY)) || 0;
+    return window.localStorage.getItem(key);
   } catch {
-    return 0;
+    return null;
   }
 }
 
-function saveBest(value) {
+function writeStore(key, value) {
   try {
-    window.localStorage.setItem(BEST_KEY, String(value));
+    window.localStorage.setItem(key, value);
   } catch { /* not worth telling the player about */ }
+}
+
+function loadBest() {
+  return Number(readStore(bestKey())) || 0;
+}
+
+function saveBest(value) {
+  writeStore(bestKey(), String(value));
 }
 
 function showBest() {
   el.best.textContent = state.best;
+  el.bestLabel.textContent = state.mode === 'daily' ? 'Best today' : 'Best';
   el.bestWrap.hidden = state.best === 0;
 }
 
@@ -130,7 +167,23 @@ function dealInRight() {
 
 /* Play ------------------------------------------------------------------- */
 
+/** The cards this mode plays with, and the shuffle that orders them.
+ *
+ * Daily uses every card and a seed derived from the date, so the same day
+ * deals the same menu to everyone -- and to the same player on a retry.
+ * Endless honours the year range and shuffles freshly each run.
+ */
+function buildDeck() {
+  if (state.mode === 'daily') {
+    return createDeck(state.all, makeRng(seedFrom(state.day)));
+  }
+  return createDeck(withinYears(state.all, state.from, state.to));
+}
+
 function newRound() {
+  state.deck = buildDeck();
+  state.best = loadBest();
+  showBest();
   state.left = draw(state.deck);
   state.right = draw(state.deck, state.left, 0);
   state.streak = 0;
@@ -140,6 +193,87 @@ function newRound() {
   render();
   dealIn();
   state.locked = false;
+}
+
+/* Modes ------------------------------------------------------------------ */
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function prettyDay(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  const daily = mode === 'daily';
+  el.modeDaily.classList.toggle('is-on', daily);
+  el.modeEndless.classList.toggle('is-on', !daily);
+  el.modeDaily.setAttribute('aria-pressed', String(daily));
+  el.modeEndless.setAttribute('aria-pressed', String(!daily));
+  el.years.hidden = daily;
+  el.modeNote.textContent = daily
+    ? `Today's menu - ${prettyDay(state.day)}. Everyone gets these same cards.`
+    : 'A fresh shuffle every run. Set the years you want to play.';
+  if (!daily) showYearCount();
+  newRound();
+}
+
+/* Year range (endless only) ---------------------------------------------- */
+
+function countInRange() {
+  return withinYears(state.all, state.from, state.to).length;
+}
+
+function showYearCount() {
+  const n = countInRange();
+  el.yearsCount.textContent = n < MIN_CARDS
+    ? `Only ${n} cards in that range - widen it to play.`
+    : `${n.toLocaleString()} cards`;
+  el.yearsCount.classList.toggle('is-warning', n < MIN_CARDS);
+  const short = n < MIN_CARDS;
+  el.higher.disabled = short;
+  el.lower.disabled = short;
+  return !short;
+}
+
+function readYearInputs() {
+  let from = Number(el.yearFrom.value);
+  let to = Number(el.yearTo.value);
+  if (from > to) [from, to] = [to, from];   // dragging one past the other
+  state.from = from;
+  state.to = to;
+  el.fromLabel.textContent = from;
+  el.toLabel.textContent = to;
+}
+
+function applyYears() {
+  readYearInputs();
+  writeStore(YEARS_KEY, `${state.from}-${state.to}`);
+  if (showYearCount()) newRound();
+}
+
+function setupYears() {
+  const [lo, hi] = state.bounds;
+  const stored = (readStore(YEARS_KEY) || '').split('-').map(Number);
+  const valid = stored.length === 2 && stored.every(Number.isFinite)
+    && stored[0] >= lo && stored[1] <= hi && stored[0] < stored[1];
+  [state.from, state.to] = valid ? stored : [lo, hi];
+
+  for (const input of [el.yearFrom, el.yearTo]) {
+    input.min = lo;
+    input.max = hi;
+  }
+  el.yearFrom.value = state.from;
+  el.yearTo.value = state.to;
+  readYearInputs();
+
+  // Live label while dragging; rebuild the deck only once the handle is let go.
+  for (const input of [el.yearFrom, el.yearTo]) {
+    input.addEventListener('input', () => { readYearInputs(); showYearCount(); });
+    input.addEventListener('change', applyYears);
+  }
 }
 
 function guess(choice) {
@@ -205,7 +339,12 @@ function shareText() {
   const squares = state.streak <= 20
     ? '\u{1F7E9}'.repeat(state.streak) + '\u{1F7E5}'
     : `\u{1F7E9}×${state.streak} \u{1F7E5}`;
-  return `Big Apples to Apples \u{1F34E}\n`
+  // Name the run, so two scores are only compared when they mean the same
+  // thing: the same day's cards, or the same slice of years.
+  const label = state.mode === 'daily'
+    ? `Daily, ${prettyDay(state.day)}`
+    : `Endless, ${state.from}–${state.to}`;
+  return `Big Apples to Apples \u{1F34E}\n${label}\n`
     + `Streak: ${state.streak}\n${squares}\n${location.href}`;
 }
 
@@ -236,7 +375,7 @@ async function init() {
   try {
     const res = await fetch('data/items.json');
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    state.deck = createDeck(await res.json());
+    state.deck = await res.json();           // raw items; buildDeck shuffles them
   } catch (err) {
     // Most often: opened as a file:// URL, where fetch is blocked.
     el.prompt.textContent = 'Could not load the menu data. Serve the folder '
@@ -246,19 +385,23 @@ async function init() {
     return;
   }
 
-  state.best = loadBest();
-  showBest();
+  state.all = state.deck;                    // init() parked the raw items here
+  state.bounds = yearRange(state.all);
+  setupYears();
+
   el.higher.addEventListener('click', () => guess('higher'));
   el.lower.addEventListener('click', () => guess('lower'));
   el.again.addEventListener('click', newRound);
   el.share.addEventListener('click', share);
+  el.modeDaily.addEventListener('click', () => setMode('daily'));
+  el.modeEndless.addEventListener('click', () => setMode('endless'));
   document.addEventListener('keydown', (e) => {
     if (el.controls.hidden) return;
     if (e.key === 'ArrowUp' || e.key === 'h') guess('higher');
     if (e.key === 'ArrowDown' || e.key === 'l') guess('lower');
   });
   el.board.classList.remove('is-loading');
-  newRound();
+  setMode('daily');                          // the day's menu is the front door
 }
 
 init();

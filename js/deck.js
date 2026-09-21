@@ -23,6 +23,47 @@ const EASY = { minGap: 1.5, maxGap: 50, minYears: 0, maxYears: 20 };
  *  a minimum gap only permits a hard pair, it does not deal one. */
 const HARD = { minGap: NEAR_TIE, maxGap: 0.9, minYears: 40, maxYears: 200 };
 
+/* Seeded play ------------------------------------------------------------ */
+
+/** FNV-1a. Turns a date like "2026-09-21" into a seed, so everyone opening
+ *  the game on the same day is dealt the same menu. */
+export function seedFrom(text) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+/** Small LCG. Not good randomness, but reproducible, which is the point. */
+export function makeRng(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => (s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+}
+
+/** Local date as YYYY-MM-DD -- the daily challenge turns over at midnight
+ *  where the player is, not in UTC. */
+export function dayKey(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function yearRange(items) {
+  let lo = Infinity, hi = -Infinity;
+  for (const item of items) {
+    if (item.year < lo) lo = item.year;
+    if (item.year > hi) hi = item.year;
+  }
+  return [lo, hi];
+}
+
+export function withinYears(items, from, to) {
+  return items.filter((item) => item.year >= from && item.year <= to);
+}
+
+/* Deck -------------------------------------------------------------------- */
+
 export function shuffle(list, rng = Math.random) {
   const out = list.slice();
   for (let i = out.length - 1; i > 0; i--) {
