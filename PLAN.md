@@ -88,12 +88,12 @@
 - [x] Streak tracking and game over
 
 ### Phase 3: Polish
-- [ ] Reveal and slide animations
-- [ ] Best score in localStorage
-- [ ] Difficulty ramp
-- [ ] Inflation fact on reveal
-- [ ] Share button
-- [ ] Mobile layout
+- [x] Reveal and slide animations
+- [x] Best score in localStorage
+- [x] Difficulty ramp
+- [x] Inflation fact on reveal
+- [x] Share button
+- [x] Mobile layout
 
 ### Phase 4: Stretch
 - [ ] Menu images (if URLs still resolve)

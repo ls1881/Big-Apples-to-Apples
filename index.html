@@ -12,7 +12,8 @@
 <header class="masthead">
   <h1>Big Apples to Apples</h1>
   <p class="tagline">A century of menus, compared anyway.</p>
-  <p class="score">Streak <strong id="streak">0</strong></p>
+  <p class="score">Streak <strong id="streak">0</strong><span id="best-wrap" hidden>
+    <span class="score-sep">&middot;</span> Best <strong id="best">0</strong></span></p>
 </header>
 
 <main>
@@ -20,7 +21,10 @@
     <article class="card" id="left">
       <p class="dish"></p>
       <p class="meta"><span class="restaurant"></span><span class="year"></span></p>
-      <p class="price"></p>
+      <div class="price-block">
+        <p class="price"></p>
+        <p class="fact is-empty">&nbsp;</p>
+      </div>
     </article>
 
     <p class="versus" aria-hidden="true">vs</p>
@@ -28,7 +32,10 @@
     <article class="card" id="right">
       <p class="dish"></p>
       <p class="meta"><span class="restaurant"></span><span class="year"></span></p>
-      <p class="price is-hidden"></p>
+      <div class="price-block">
+        <p class="price is-hidden"></p>
+        <p class="fact is-empty">&nbsp;</p>
+      </div>
     </article>
   </div>
 
@@ -42,7 +49,11 @@
   <div class="gameover" id="gameover" hidden>
     <p class="gameover-line">Dinner's over.</p>
     <p class="gameover-streak">Final streak <strong id="final-streak">0</strong></p>
-    <button type="button" id="again">Play again</button>
+    <p class="gameover-note" id="final-note"></p>
+    <div class="gameover-actions">
+      <button type="button" id="again">Play again</button>
+      <button type="button" id="share" class="secondary">Share</button>
+    </div>
   </div>
 
   <p class="visually-hidden" id="status" role="status" aria-live="polite"></p>

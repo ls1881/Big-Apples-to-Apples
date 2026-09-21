@@ -19,13 +19,35 @@ node --test test/deck.test.mjs  # pair-selection rules
 
 Cards are compared on the price **as printed on the menu**, not adjusted for
 inflation - a 1907 lobster really is cheaper than a 1987 coffee, and that is
-the game. A pair is only dealt if the two prices differ by more than 18%
-(`NEAR_TIE` in `js/deck.js`); closer than that and the player is flipping a
-coin. Pairs also never repeat a dish or a restaurant within a run.
+the game. Today's-money equivalent appears only once a price is revealed, so
+the card you are betting against shows a single number. A pair is never dealt
+closer than 18% apart (`NEAR_TIE`), and never repeats a dish or a restaurant
+within a run.
 
-Difficulty is currently flat: the median pair differs by about 200% in price,
-and only ~16% of pairs land under a 50% gap. Phase 3's ramp is what tightens
-that as the streak grows.
+Play with the buttons, or the arrow keys.
+
+### Difficulty
+
+`difficultyFor(streak)` in `js/deck.js` narrows a band rather than setting a
+floor - a minimum gap only *permits* a hard pair, it does not deal one, so the
+ceiling is what actually makes the game harder. Over 15 rounds it moves from a
+wide gap between dishes of the same era to a narrow one between dishes decades
+apart, where inflation is working against the player:
+
+| streak | price gap allowed | years apart | median gap dealt |
+| -----: | ----------------- | ----------- | ---------------: |
+|      0 | 150% - 5000%      | 0 - 20      |             338% |
+|      5 | 74% - 1310%       | 13 - 80     |             275% |
+|     10 | 36% - 343%        | 27 - 140    |             133% |
+|    15+ | 18% - 90%         | 40 - 200    |              50% |
+
+If no unused card fits the rule, the draw relaxes it (first the era, then the
+gap) rather than repeating a card. Over 6,800 simulated draws that fallback
+fired 0.1% of the time.
+
+The best streak is kept in `localStorage` under `baa:best`, and the game still
+works where that is unavailable. Animations are skipped for anyone with
+`prefers-reduced-motion` set.
 ## Data pipeline (Phase 1)
 
 The game reads a single static file, `data/items.json`: one card per

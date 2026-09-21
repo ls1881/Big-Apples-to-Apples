@@ -47,6 +47,7 @@ body {
 }
 
 .score strong { color: var(--ink); font-size: 1.1rem; }
+.score-sep { opacity: 0.5; }
 
 /* Board ------------------------------------------------------------------ */
 
@@ -91,6 +92,8 @@ body {
 .restaurant { display: block; font-variant: small-caps; letter-spacing: 0.04em; }
 .year { display: block; margin-top: 0.15rem; }
 
+.price-block { margin-top: auto; }
+
 .price {
   margin: 1.25rem 0 0;
   padding-top: 1rem;
@@ -108,19 +111,22 @@ body {
 .card.is-right .price { color: var(--right); }
 .card.is-wrong .price { color: var(--wrong); }
 
+.fact {
+  margin: 0.35rem 0 0;
+  color: var(--faded);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+/* The line keeps its space when empty, so revealing a price does not shove
+   one card's rule out of line with the other's. */
+.fact.is-empty { visibility: hidden; }
+
 .versus {
   align-self: center;
   margin: 0;
   color: var(--faded);
   font-style: italic;
-}
-
-/* Stacked, the cards want a divider between them, not beside them.
-   Phase 3 does the real mobile pass. */
-@media (max-width: 40rem) {
-  .board { flex-direction: column; align-items: center; gap: 1rem; }
-  .card { width: 100%; min-height: 0; }
-  .versus { align-self: center; }
 }
 
 /* Controls --------------------------------------------------------------- */
@@ -149,6 +155,9 @@ button {
   cursor: pointer;
 }
 
+button.secondary { border-color: var(--rule); color: var(--faded); }
+button.secondary:hover { background: var(--faded); color: var(--paper); }
+
 button:hover { background: var(--ink); color: var(--paper); }
 button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
@@ -164,7 +173,21 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   color: var(--faded);
 }
 
+.gameover-streak { margin-bottom: 0.35rem; }
 .gameover-streak strong { color: var(--ink); font-size: 1.1rem; }
+
+.gameover-note {
+  margin: 0 0 1.5rem;
+  color: var(--faded);
+  font-style: italic;
+}
+
+.gameover-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 
 footer {
   margin-top: 4rem;
@@ -179,4 +202,48 @@ footer a { color: inherit; }
   width: 1px; height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+
+/* Narrow screens: stack the cards, and tighten everything enough that a
+   round fits on a phone without scrolling to see the reveal. */
+@media (max-width: 40rem) {
+  body { padding: 1.25rem 1rem 2rem; }
+
+  .board { flex-direction: column; align-items: center; gap: 0.6rem; }
+  /* Stacked, the flex-basis of 16rem would apply to height, not width. */
+  .card { flex: 0 0 auto; width: 100%; min-height: 0; padding: 1.1rem 1.25rem; }
+  .versus { align-self: center; margin: 0; }
+
+  .tagline { margin-bottom: 0.9rem; font-size: 0.9rem; }
+  .score { margin-bottom: 1.1rem; }
+
+  .dish { font-size: 1.1rem; }
+  .meta { margin-top: 0.4rem; font-size: 0.82rem; }
+  .price { margin-top: 0.7rem; padding-top: 0.6rem; font-size: 1.5rem; }
+
+  .prompt { margin: 1.1rem auto 0.9rem; font-size: 0.92rem; }
+  .controls { gap: 0.6rem; }
+  button { flex: 1 1 0; padding: 0.85rem 1rem; }   /* thumb-sized targets */
+  .gameover-actions button { flex: 0 1 auto; }
+
+  footer { margin-top: 2rem; }
+}
+
+/* Short screens (an old phone, or a landscape window): trim the furniture so
+   the cards and the buttons still land above the fold. The prompt stays -- it
+   is also where a data-loading failure gets reported. */
+@media (max-width: 40rem) and (max-height: 700px) {
+  body { padding-top: 0.75rem; }
+  .masthead h1 { font-size: 1.45rem; }
+  .tagline { display: none; }
+  .score { margin-bottom: 0.7rem; }
+
+  .board { gap: 0.4rem; }
+  .card { padding: 0.8rem 1rem; }
+  .dish { font-size: 1rem; }
+  .meta { margin-top: 0.3rem; font-size: 0.78rem; }
+  .price { margin-top: 0.5rem; padding-top: 0.5rem; font-size: 1.3rem; }
+  .fact { font-size: 0.75rem; }
+
+  .prompt { margin: 0.8rem auto 0.7rem; }
 }
