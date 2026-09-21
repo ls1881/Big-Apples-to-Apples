@@ -93,9 +93,16 @@ page, not the dish) — it is there for Phase 4.
 - **Caps.** Without them the deck is mostly Waldorf Astoria coffee, so it is
   limited to 8 items per restaurant and 12 per dish (`--max-per-restaurant`,
   `--max-per-dish`).
-- **Scope.** The build keeps the whole collection by default. `--scope nyc`
-  narrows it to menus whose place reads as New York, which is a much smaller
-  and patchier pool, since over half the menus have no place recorded.
+- **Scope.** The build keeps the whole collection by default, and that is what
+  ships: 12,218 cards. Despite the name, only about 19% of them are New York -
+  the rest are other US cities, ocean liners and railroad dining cars, which is
+  why the tagline credits the library rather than claiming the menus are local.
+  `--scope nyc` narrows it to menus whose place reads as New York, which yields
+  2,613 cards from 346 restaurants.
+- **Unnamed restaurants.** The archive records some menus with no restaurant at
+  all. Its placeholder has four spellings and a stray bracket, so the build
+  collapses them to one phrase, "Restaurant name not given", and strips
+  editorial brackets from names like "Wabash [Railway Company]".
 
 `data/build_report.json` records the snapshot used and the row count after
 every filter.

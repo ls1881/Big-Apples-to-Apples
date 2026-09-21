@@ -38,6 +38,13 @@ KEEP_UPPER = {"ss", "rms", "hms", "usa", "us", "ny", "nyc", "bbq", "ii", "iii",
               "rr", "usms", "uss", "bmt", "irt"}   # no "la"/"dc": articles win
 JUNK_NAMES = {"", "?", "??", "???", "n/a", "na", "none", "unknown", "[]", "--"}
 
+# The archive's stand-in for a menu whose restaurant was never recorded. It
+# appears with several spellings and a stray bracket; on a card it should read
+# as one plain phrase.
+UNNAMED = "Restaurant name not given"
+UNNAMED_RE = re.compile(r"restaurant\s*(name)?\s*(and\s*/?\s*or)?\s*location"
+                        r"\s*not\s*given", re.I)
+
 
 class Funnel:
     """Row counter that reports what each filter cost."""
@@ -68,6 +75,9 @@ def tidy(value: object) -> str:
     s = re.sub(r"\(\?\)|\[\?\]", "", s).strip()      # archive's "not sure" marker
     if re.fullmatch(r"[(\[].*[)\]]", s):                # wholly parenthesised name
         s = s[1:-1].strip()
+    # Editorial brackets around part of a name ("Wabash [Railway Company]")
+    # read as a typo on a card; keep the words, drop the brackets.
+    s = s.replace("[", "").replace("]", "").strip()
     s = re.sub(r"[;,.?\s]+$", "", s).strip()
     return s
 
@@ -154,7 +164,9 @@ def trim_outliers(df: pd.DataFrame) -> pd.Series:
 def is_nyc(df: pd.DataFrame) -> pd.Series:
     blob = (df["place"].fillna("") + " | " + df["location"].fillna("")
             + " | " + df["menu_name"].fillna("")).str.upper()
-    return blob.str.contains(r"NEW YORK|\bN\.? ?Y\.?\b|BROOKLYN|MANHATTAN", regex=True)
+    return blob.str.contains(
+        r"NEW YORK|\bNYC\b|\bN\.? ?Y\.?\b|BROOKLYN|MANHATTAN|BRONX"
+        r"|STATEN ISLAND|\bHARLEM\b", regex=True)
 
 
 def cpi_table() -> dict[int, float]:
@@ -191,7 +203,8 @@ def main() -> None:
     print("\n== step 4: normalize")
     f.df = f.df.assign(
         dish=f.df["dish_name"].map(tidy).map(titlecase),
-        restaurant=f.df["sponsor"].map(tidy).map(titlecase),
+        restaurant=f.df["sponsor"].map(tidy).map(titlecase)
+                                 .str.replace(UNNAMED_RE, UNNAMED, regex=True),
     )
     f.keep(usable_name(f.df["restaurant"], RESTAURANT_LEN), "valid restaurant name")
     f.keep(usable_name(f.df["dish"], DISH_LEN), "valid dish name")

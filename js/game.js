@@ -59,6 +59,9 @@ function showBest() {
  *  PLAN puts the conversion on the reveal only -- the card to beat shows one
  *  number, so there is no question which price is being compared. */
 function paint(root, card, { price: showPrice = false, fact: showFact = false } = {}) {
+  // Clear last round's verdict here, not at the call sites -- a stale is-wrong
+  // surviving into a new game turns a correct first guess red.
+  root.classList.remove('is-right', 'is-wrong');
   root.querySelector('.dish').textContent = card.dish;
   root.querySelector('.restaurant').textContent = card.restaurant;
   root.querySelector('.year').textContent = card.year;
@@ -170,7 +173,6 @@ async function advance() {
   const release = await slideOver();
   state.left = state.right;
   state.right = draw(state.deck, state.left, state.streak);
-  el.right.classList.remove('is-right', 'is-wrong');
   // Hide the incoming card before it is painted, so releasing the slide
   // cannot flash the new dish for a frame at full opacity.
   if (!reducedMotion.matches) el.right.style.opacity = '0';

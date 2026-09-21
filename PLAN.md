@@ -1,9 +1,12 @@
 # Big Apples to Apples
 
-> A century of NYC menus, compared anyway.
+> A century of menus from the New York Public Library, compared anyway.
 
 ## 1. Overview
 - Higher-or-lower browser game built on NYPL's "What's on the Menu?" archive
+- Scope decided in Phase 3: the whole collection, not NYC only. Only ~19% of
+  the menus are New York; the rest are other US cities, ocean liners and
+  railroad dining cars. `--scope nyc` narrows it if that changes.
 - Each round: two dishes, each with restaurant + year
 - Left card shows its price; player guesses if the right card's price is higher or lower
 - Correct → streak +1, right card slides left, new dish appears

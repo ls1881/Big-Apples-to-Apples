@@ -238,12 +238,14 @@ footer a { color: inherit; }
   .tagline { display: none; }
   .score { margin-bottom: 0.7rem; }
 
-  .board { gap: 0.4rem; }
-  .card { padding: 0.8rem 1rem; }
+  .board { gap: 0.35rem; }
+  .card { padding: 0.7rem 1rem; }
   .dish { font-size: 1rem; }
-  .meta { margin-top: 0.3rem; font-size: 0.78rem; }
-  .price { margin-top: 0.5rem; padding-top: 0.5rem; font-size: 1.3rem; }
+  .meta { margin-top: 0.25rem; font-size: 0.78rem; }
+  .price { margin-top: 0.4rem; padding-top: 0.4rem; font-size: 1.25rem; }
   .fact { font-size: 0.75rem; }
 
-  .prompt { margin: 0.8rem auto 0.7rem; }
+  /* Headroom for a dish name that wraps to two lines. */
+  .prompt { margin: 0.6rem auto 0.55rem; }
+  footer { margin-top: 1.2rem; }
 }
