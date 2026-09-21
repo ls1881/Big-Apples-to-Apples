@@ -48,17 +48,28 @@ liner. Only about 30% of menus have one, so most cards show none.
 
 **Daily** is what opens by default: one fixed run per calendar day, the same
 cards in the same order for everyone. The seed is an FNV-1a hash of the local
-date, so the day turns over at the player's midnight rather than UTC, and
-"Play again" replays that same day rather than reshuffling. Its best score is
-kept per day (`baa:daily:<date>`), so yesterday's number is not sitting next to
-today's cards.
+date, so the day turns over at the player's midnight rather than UTC.
+
+It is one attempt. There is no "Play again" on the daily, and the attempt is
+written to `baa:daily:<date>` as it goes, so reloading resumes the run rather
+than handing out a second go at the same puzzle - finished or halfway. Only
+the streak is stored: the deck is seeded and every draw is deterministic, so
+replaying that many rounds rebuilds the exact pair the player was looking at
+and leaves the deck's cursor where it belongs. There is no best-score chip in
+daily mode, because with one attempt the streak *is* the score.
 
 **Endless** reshuffles freshly each run and adds a year range: one track with
-a thumb at each end. Narrowing it rebuilds the deck from just those years; the
-card count updates live, and below 60 cards the range is refused rather than
-dealt, because the deck cannot keep finding fair pairs in a pool that small.
-The range is remembered (`baa:years`), but the mode is not - the daily is
-always the front door.
+a thumb at each end. Moving it re-aims what comes *next* without disturbing
+the round in progress - the two cards on the board and the streak survive, and
+only the pool the next card is drawn from changes. The run restarts only if
+the new range no longer contains the cards being compared, at which point it
+could not fairly continue anyway. Cards already spent are carried across the
+rebuild, so nothing repeats mid-run.
+
+The card count updates live, and below 60 cards the range is refused rather
+than dealt, because the deck cannot keep finding fair pairs in a pool that
+small. The range is remembered (`baa:years`), but the mode is not - the daily
+is always the front door.
 
 The range control is two native `input type="range"` elements stacked on one
 track, rather than a hand-rolled widget, so keyboard and screen-reader support
@@ -69,8 +80,9 @@ neither could be grabbed to pull them apart.
 
 **Switching modes does not restart anything.** The run you leave is parked --
 deck, cursor, both cards and the streak - and put back when you return, a
-finished run included, end screen and all. Parking is per session: a reload
-starts the day fresh, though the day's best score is already saved.
+finished run included, end screen and all. Parking is per session, so a reload
+drops an endless run; the daily survives one, since it is written to storage
+as it goes.
 
 A narrow range and a long streak pull in opposite directions: by streak 15 the
 ramp wants cards 40+ years apart, which a 1940-1950 range cannot supply. The

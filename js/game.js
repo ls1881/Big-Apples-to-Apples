@@ -78,10 +78,33 @@ const state = {
 // localStorage throws in a private window or with site data blocked, and the
 // game works fine without it, so every access is optional.
 
-/** Endless keeps one all-time best; the daily keeps a best per day, so
+/** Endless keeps one all-time best; the daily keeps its record per day, so
  *  yesterday's score does not sit next to today's cards. */
-function bestKey() {
-  return state.mode === 'daily' ? `baa:daily:${state.day}` : BEST_KEY;
+function dailyKey() {
+  return `baa:daily:${state.day}`;
+}
+
+/** Today's attempt: how far it got, and whether it is over.
+ *
+ * Stored rather than held in memory so the one attempt survives a reload --
+ * otherwise refreshing would hand out a second go at the same puzzle. Older
+ * builds stored a bare number here; treat that as a finished run.
+ */
+function readDaily() {
+  const raw = readStore(dailyKey());
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw);
+    if (typeof value === 'number') return { s: value, done: true };
+    return (value && typeof value.s === 'number') ? value : null;
+  } catch {
+    const n = Number(raw);
+    return Number.isFinite(n) ? { s: n, done: true } : null;
+  }
+}
+
+function writeDaily(streak, done) {
+  writeStore(dailyKey(), JSON.stringify({ s: streak, done }));
 }
 
 function readStore(key) {
@@ -99,17 +122,19 @@ function writeStore(key, value) {
 }
 
 function loadBest() {
-  return Number(readStore(bestKey())) || 0;
+  return Number(readStore(BEST_KEY)) || 0;
 }
 
 function saveBest(value) {
-  writeStore(bestKey(), String(value));
+  writeStore(BEST_KEY, String(value));
 }
 
+/** Only endless has a best worth keeping: the daily is a single attempt, so
+ *  its streak is its score and a second number beside it means nothing. */
 function showBest() {
   el.best.textContent = state.best;
-  el.bestLabel.textContent = state.mode === 'daily' ? 'Best today' : 'Best';
-  el.bestWrap.hidden = state.best === 0;
+  el.bestLabel.textContent = 'Best';
+  el.bestWrap.hidden = state.mode === 'daily' || state.best === 0;
 }
 
 /* Rendering -------------------------------------------------------------- */
@@ -249,6 +274,24 @@ function buildDeck() {
   return createDeck(withinYears(state.all, state.from, state.to));
 }
 
+/** Deal the daily forward to where it was left off.
+ *
+ * The deck is seeded and every draw is deterministic, so replaying the same
+ * number of rounds rebuilds the exact pair the player was looking at -- and
+ * leaves the deck's cursor where it belongs, so nothing repeats afterwards.
+ * That means only the streak has to be stored.
+ */
+function replayDaily(streak) {
+  const deck = buildDeck();
+  let left = draw(deck);
+  let right = draw(deck, left, 0);
+  for (let s = 1; s <= streak; s++) {
+    left = right;
+    right = draw(deck, left, s);
+  }
+  return { deck, left, right };
+}
+
 function newRound() {
   delete state.saved[state.mode];
   state.deck = buildDeck();
@@ -257,8 +300,12 @@ function newRound() {
   state.left = draw(state.deck);
   state.right = draw(state.deck, state.left, 0);
   state.streak = 0;
+  state.seen = new Set([state.left.id, state.right.id]);
+  if (state.mode === 'daily') writeDaily(0, false);
   el.gameover.hidden = true;
   el.controls.hidden = false;
+  el.again.hidden = false;
+  state.over = false;
   el.share.textContent = 'Share';
   render();
   dealIn();
@@ -292,7 +339,23 @@ function setMode(mode) {
   if (!daily) showYearCount();
 
   const parked = state.saved[mode];
-  if (parked) resumeRun(parked); else newRound();
+  if (parked) resumeRun(parked);
+  else if (daily && readDaily()) resumeDaily();
+  else newRound();
+}
+
+/** Put today's attempt back, mid-run or finished, after a reload. */
+function resumeDaily() {
+  const record = readDaily();
+  const { deck, left, right } = replayDaily(record.s);
+  state.deck = deck;
+  state.left = left;
+  state.right = right;
+  state.streak = record.s;
+  state.seen = new Set();
+  state.best = loadBest();
+  state.note = '';
+  resumeRun({ deck, left, right, streak: record.s, note: state.note, over: record.done });
 }
 
 /* Year range (endless only) ---------------------------------------------- */
@@ -347,10 +410,29 @@ function readYearInputs(moved = null) {
   el.yearFrom.style.zIndex = from >= hi - MIN_SPAN ? '3' : '';
 }
 
+const inRange = (card) => card && card.year >= state.from && card.year <= state.to;
+
+/**
+ * Re-aim the deck at the new years without disturbing the round in progress.
+ * The cards already on the board only go away if the player has narrowed the
+ * range past them -- at which point the run cannot fairly continue, so it
+ * starts over.
+ */
 function applyYears(moved) {
   readYearInputs(moved);
   writeStore(YEARS_KEY, `${state.from}-${state.to}`);
-  if (showYearCount()) newRound();
+  if (!showYearCount()) return;
+
+  if (state.over || !inRange(state.left) || !inRange(state.right)) {
+    newRound();
+    return;
+  }
+  // Keep the pair, the streak and the cards already spent; only the pool of
+  // what comes next changes.
+  const pool = withinYears(state.all, state.from, state.to)
+    .filter((card) => !state.seen.has(card.id));
+  state.deck = createDeck(pool);
+  delete state.saved[state.mode];
 }
 
 function setupYears() {
@@ -409,6 +491,8 @@ async function advance() {
   const release = await slideOver();
   state.left = state.right;
   state.right = draw(state.deck, state.left, state.streak);
+  state.seen.add(state.right.id);
+  if (state.mode === 'daily') writeDaily(state.streak, false);
   // Hide the incoming card before it is painted, so releasing the slide
   // cannot flash the new dish for a frame at full opacity.
   if (!reducedMotion.matches) el.right.style.opacity = '0';
@@ -419,24 +503,35 @@ async function advance() {
 }
 
 function endGame() {
-  const beaten = state.streak > state.best;
-  if (beaten) {
-    state.best = state.streak;
-    saveBest(state.best);
+  if (state.mode === 'daily') {
+    writeDaily(state.streak, true);       // the day is spent, however it went
+    state.note = '';
+  } else {
+    const beaten = state.streak > state.best;
+    if (beaten) {
+      state.best = state.streak;
+      saveBest(state.best);
+    }
+    state.note = beaten && state.streak > 0 ? 'A new best.' : `Best ${state.best}.`;
   }
   showBest();
-  state.note = beaten && state.streak > 0 ? 'A new best.' : `Best ${state.best}.`;
   showEndScreen({ focus: true });
 }
 
 function showEndScreen({ focus = false } = {}) {
+  const daily = state.mode === 'daily';
   el.finalStreak.textContent = state.streak;
-  el.finalNote.textContent = state.note;
+  // One attempt at the day's menu, so there is nothing to play again.
+  el.finalNote.textContent = daily
+    ? "That was today's menu - a new one tomorrow."
+    : state.note;
+  el.again.hidden = daily;
   el.prompt.textContent = '';
   el.controls.hidden = true;
   el.gameover.hidden = false;
   state.locked = true;
-  if (focus) el.again.focus();
+  state.over = true;
+  if (focus) (daily ? el.share : el.again).focus();
 }
 
 /* Parking a run ---------------------------------------------------------- */
@@ -447,7 +542,8 @@ function parkRun() {
   if (!state.left) return null;
   return {
     deck: state.deck, left: state.left, right: state.right,
-    streak: state.streak, note: state.note, over: !el.gameover.hidden,
+    streak: state.streak, note: state.note, seen: state.seen,
+    over: !el.gameover.hidden,
   };
 }
 
@@ -455,6 +551,7 @@ function resumeRun(run) {
   Object.assign(state, {
     deck: run.deck, left: run.left, right: run.right,
     streak: run.streak, note: run.note,
+    seen: run.seen || state.seen || new Set(),
   });
   state.best = loadBest();
   showBest();
@@ -471,6 +568,7 @@ function resumeRun(run) {
     render();
     el.gameover.hidden = true;
     el.controls.hidden = false;
+    state.over = false;
     state.locked = false;
   }
   dealIn();
