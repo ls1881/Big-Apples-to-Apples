@@ -2,6 +2,30 @@
 Big Apples to Apples is a higher-or-lower game built on real restaurant menus from the New York Public Library's archive. Each round shows two dishes, each with its restaurant and year. You know what the first one cost; you guess whether the second was pricier or cheaper. Get it right and your streak grows. Get it wrong and dinner's over.
 
 
+## Running the game
+
+It is a static site with no build step, but it fetches `data/items.json`, so it
+needs to be served over http rather than opened as a file.
+
+```sh
+python3 -m http.server 8000     # then open http://localhost:8000
+node --test test/deck.test.mjs  # pair-selection rules
+```
+
+- `index.html` / `css/style.css` - the board.
+- `js/deck.js` - shuffling and what counts as a fair pair. No DOM, so it is
+  testable on its own.
+- `js/game.js` - renders the cards, reads a guess, keeps the streak.
+
+Cards are compared on the price **as printed on the menu**, not adjusted for
+inflation - a 1907 lobster really is cheaper than a 1987 coffee, and that is
+the game. A pair is only dealt if the two prices differ by more than 18%
+(`NEAR_TIE` in `js/deck.js`); closer than that and the player is flipping a
+coin. Pairs also never repeat a dish or a restaurant within a run.
+
+Difficulty is currently flat: the median pair differs by about 200% in price,
+and only ~16% of pairs land under a 50% gap. Phase 3's ramp is what tightens
+that as the streak grows.
 ## Data pipeline (Phase 1)
 
 The game reads a single static file, `data/items.json`: one card per

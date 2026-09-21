@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Big Apples to Apples</title>
+<meta name="description" content="A higher-or-lower game built on a century of real restaurant menus from the New York Public Library.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8D%8E%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>Big Apples to Apples</h1>
+  <p class="tagline">A century of menus, compared anyway.</p>
+  <p class="score">Streak <strong id="streak">0</strong></p>
+</header>
+
+<main>
+  <div class="board is-loading" id="board">
+    <article class="card" id="left">
+      <p class="dish"></p>
+      <p class="meta"><span class="restaurant"></span><span class="year"></span></p>
+      <p class="price"></p>
+    </article>
+
+    <p class="versus" aria-hidden="true">vs</p>
+
+    <article class="card" id="right">
+      <p class="dish"></p>
+      <p class="meta"><span class="restaurant"></span><span class="year"></span></p>
+      <p class="price is-hidden"></p>
+    </article>
+  </div>
+
+  <p class="prompt" id="prompt">Dealing the first two dishes&hellip;</p>
+
+  <div class="controls" id="controls" hidden>
+    <button type="button" id="higher">Higher</button>
+    <button type="button" id="lower">Lower</button>
+  </div>
+
+  <div class="gameover" id="gameover" hidden>
+    <p class="gameover-line">Dinner's over.</p>
+    <p class="gameover-streak">Final streak <strong id="final-streak">0</strong></p>
+    <button type="button" id="again">Play again</button>
+  </div>
+
+  <p class="visually-hidden" id="status" role="status" aria-live="polite"></p>
+</main>
+
+<footer>
+  <p>Menu data: The New York Public Library,
+    <a href="https://www.nypl.org/research/support/whats-on-the-menu">What's on the Menu?</a>
+    Prices are as printed on the menu.</p>
+</footer>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>

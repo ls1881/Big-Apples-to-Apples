@@ -82,10 +82,10 @@
 - [x] Sample spot-checked
 
 ### Phase 2: Core Game
-- [ ] Two-card layout
-- [ ] Higher / Lower buttons
-- [ ] Pair selection with near-tie skipping
-- [ ] Streak tracking and game over
+- [x] Two-card layout
+- [x] Higher / Lower buttons
+- [x] Pair selection with near-tie skipping
+- [x] Streak tracking and game over
 
 ### Phase 3: Polish
 - [ ] Reveal and slide animations
