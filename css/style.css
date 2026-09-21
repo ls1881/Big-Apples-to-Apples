@@ -265,7 +265,37 @@ button:disabled:hover { background: var(--card); color: var(--ink); }
 }
 
 .restaurant { display: block; font-variant: small-caps; letter-spacing: 0.04em; }
+.place { display: block; margin-top: 0.1rem; font-size: 0.92em; opacity: 0.8; }
 .year { display: block; margin-top: 0.15rem; }
+
+/* A clipping of the dish's own line, cut from the scan of the menu page. */
+.clip {
+  margin: 0.7rem 0 0;
+  height: 3rem;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: 1px;
+}
+
+.clip img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+  transition: filter 0.35s ease, opacity 0.35s ease;
+}
+
+/* The printed line carries its price, so it stays illegible on the card being
+   guessed and comes into focus with the reveal. */
+.clip.is-covered img { filter: blur(6px) saturate(0.55); opacity: 0.5; }
+
+/* A scan that will not load leaves the box, not a hole. */
+.clip.is-failed img { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .clip img { transition: none; }
+}
 
 .price-block { margin-top: auto; }
 
@@ -406,6 +436,7 @@ footer a { color: inherit; }
   .versus { align-self: center; margin: 0; }
 
   .dish { font-size: 1.05rem; }
+  .clip { height: 2.4rem; margin-top: 0.5rem; }
   .meta { margin-top: 0.3rem; font-size: 0.8rem; }
   .price { margin-top: 0.5rem; padding-top: 0.5rem; font-size: 1.35rem; }
   .fact { font-size: 0.76rem; }
@@ -416,6 +447,15 @@ footer a { color: inherit; }
   .gameover-actions button { flex: 0 1 auto; }
 
   footer { margin-top: 1.5rem; }
+}
+
+/* The year panel costs about 100px, which a phone can only find by giving up
+   something else. Endless spends the masthead for it; daily, the default,
+   keeps looking like the front page it is. */
+@media (max-width: 40rem) and (max-height: 900px) {
+  body.is-endless .tagline { display: none; }
+  body.is-endless .masthead h1 { font-size: 1.4rem; }
+  body.is-endless .score { margin-bottom: 0.55rem; }
 }
 
 /* Short screens (an older phone, or a landscape window): drop the furniture
@@ -434,6 +474,7 @@ footer a { color: inherit; }
   .board { gap: 0.3rem; }
   .card { padding: 0.65rem 1rem; }
   .dish { font-size: 0.98rem; }
+  .clip { height: 2rem; margin-top: 0.4rem; }
   .meta { margin-top: 0.2rem; font-size: 0.76rem; }
   .price { margin-top: 0.35rem; padding-top: 0.35rem; font-size: 1.2rem; }
   .fact { font-size: 0.72rem; }

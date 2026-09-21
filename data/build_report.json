@@ -1,12 +1,13 @@
 {
  "snapshot": "gzips/2023_03_16_07_02_35_data.tgz",
- "scope": "nyc",
+ "scope": "all",
  "cpi_reference_year": 2025,
- "items": 2613,
- "restaurants": 346,
- "dishes": 1721,
+ "items": 12218,
+ "with_place": 3709,
+ "restaurants": 1743,
+ "dishes": 6154,
  "year_range": [
-  1852,
+  1851,
   2005
  ],
  "funnel": [
@@ -27,40 +28,36 @@
    "rows": 777585
   },
   {
-   "step": "New York menus only",
-   "rows": 133924
-  },
-  {
    "step": "valid restaurant name",
-   "rows": 129242
+   "rows": 719877
   },
   {
    "step": "valid dish name",
-   "rows": 128727
+   "rows": 703568
   },
   {
    "step": "dish on >= 5 menus",
-   "rows": 91575
+   "rows": 488763
   },
   {
    "step": "price outliers trimmed (per decade)",
-   "rows": 90691
+   "rows": 483877
   },
   {
    "step": "deduped to dish/restaurant/year",
-   "rows": 61647
+   "rows": 226646
   },
   {
    "step": "capped at 12 per dish",
-   "rows": 40122
+   "rows": 117873
   },
   {
    "step": "capped at 8 per restaurant",
-   "rows": 2613
+   "rows": 12218
   },
   {
    "step": "year covered by CPI table",
-   "rows": 2613
+   "rows": 12218
   }
  ]
 }

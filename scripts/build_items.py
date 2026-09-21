@@ -27,8 +27,34 @@ MIN_DECADE_ROWS = 200        # below this, fall back to global percentiles
 # whose price column is not in dollars.
 USD_CURRENCIES = {"Dollars"}
 
-# Menu scans still resolve here even though menus.nypl.org itself is retired.
-IMAGE_URL = "https://images.nypl.org/index.php?id={image_id}&t=w"
+# Menu scans still resolve even though menus.nypl.org itself is retired, and
+# NYPL serves them over IIIF too, so the front end builds two URLs from the
+# image id: the whole page to link to, and a crop of the dish's own line.
+# MenuItem.xpos/ypos give that line's position as a fraction of the page.
+
+PLACE_JUNK = {"", "?", "??", "???", "n/a", "na", "none", "unknown", "-", "--"}
+
+# The same city recorded several ways, and the archive's older state
+# abbreviations. Only the variants that actually occur often enough to matter.
+PLACE_ALIASES = {
+    "ny": "New York, NY", "nyc": "New York, NY", "new york": "New York, NY",
+    "new york city": "New York, NY", "manhattan": "New York, NY",
+    "dining car service": "Dining Car", "on board": "At Sea",
+}
+
+OLD_STATE_ABBR = {
+    "ill": "IL", "cal": "CA", "calif": "CA", "mass": "MA", "penn": "PA",
+    "conn": "CT", "mich": "MI", "wis": "WI", "tex": "TX", "fla": "FL",
+    "minn": "MN", "wash": "WA", "tenn": "TN", "colo": "CO", "ore": "OR",
+}
+
+US_STATES = {
+    "al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id",
+    "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms",
+    "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok",
+    "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv",
+    "wi", "wy", "dc", "pr",
+}
 
 SMALL_WORDS = {"a", "an", "and", "at", "de", "del", "der", "des", "du", "el",
                "en", "for", "in", "la", "le", "les", "of", "on", "or", "the",
@@ -112,6 +138,36 @@ def titlecase(s: str) -> str:
                   lambda m: m.group(1) + m.group(2).upper(), joined)
 
 
+def clean_place(value: object) -> str:
+    """Tidy Menu.place into something printable on a card.
+
+    Recorded for only about a third of menus, and inconsistently: bracketed,
+    semicolon-terminated, sometimes just "?". Returns "" when there is nothing
+    worth showing.
+    """
+    s = tidy(value)
+    s = re.sub(r",(\S)", r", \1", s)            # "SAN FRANCISCO,CA"
+    s = titlecase(s)
+    # Title case lowercases state codes along with everything else.
+    s = " ".join(w.upper() if w.strip(",.").lower() in US_STATES
+                 else OLD_STATE_ABBR.get(w.strip(",.").lower(), w)
+                 for w in s.split(" "))
+    s = PLACE_ALIASES.get(s.lower(), s)
+    return "" if s.lower() in PLACE_JUNK or len(s) < 2 else s
+
+
+def drop_repeated_name(place: str, restaurant: str) -> str:
+    """"Delmonico's, New York, NY" next to a card headed Delmonico's just says
+    it twice; keep the part the card does not already show."""
+    if not place or not restaurant:
+        return place
+    low, name = place.lower(), restaurant.lower()
+    if low.startswith(name):
+        rest = place[len(restaurant):].lstrip(" ,;-")
+        return PLACE_ALIASES.get(rest.lower(), rest) if rest else ""
+    return place
+
+
 def usable_name(s: pd.Series, bounds: tuple[int, int]) -> pd.Series:
     lo, hi = bounds
     return (s.str.len().between(lo, hi)
@@ -123,7 +179,8 @@ def usable_name(s: pd.Series, bounds: tuple[int, int]) -> pd.Series:
 def load_joined() -> pd.DataFrame:
     """Step 2: MenuItem -> MenuPage -> Menu, plus Dish."""
     item = pd.read_csv(RAW / "MenuItem.csv", low_memory=False,
-                       usecols=["id", "menu_page_id", "price", "dish_id"])
+                       usecols=["id", "menu_page_id", "price", "dish_id",
+                                "xpos", "ypos"])
     page = pd.read_csv(RAW / "MenuPage.csv", low_memory=False,
                        usecols=["id", "menu_id", "image_id"])
     menu = pd.read_csv(RAW / "Menu.csv", low_memory=False,
@@ -202,12 +259,15 @@ def main() -> None:
 
     print("\n== step 4: normalize")
     f.df = f.df.assign(
+        place=f.df["place"].map(clean_place),
         dish=f.df["dish_name"].map(tidy).map(titlecase),
         restaurant=f.df["sponsor"].map(tidy).map(titlecase)
                                  .str.replace(UNNAMED_RE, UNNAMED, regex=True),
     )
     f.keep(usable_name(f.df["restaurant"], RESTAURANT_LEN), "valid restaurant name")
     f.keep(usable_name(f.df["dish"], DISH_LEN), "valid dish name")
+    f.df["place"] = [drop_repeated_name(p, r)
+                     for p, r in zip(f.df["place"], f.df["restaurant"])]
     f.keep(f.df["menus_appeared"] >= args.min_menus_appeared,
            f"dish on >= {args.min_menus_appeared} menus")
     f.keep(trim_outliers(f.df), "price outliers trimmed (per decade)")
@@ -218,7 +278,8 @@ def main() -> None:
     # median, which would invent half-cent prices no menu ever showed.
     priced = (f.df.groupby(["dish", "restaurant", "year", "price"], as_index=False)
               .agg(n=("item_id", "size"), id=("item_id", "first"),
-                   image_id=("image_id", "first")))
+                   image_id=("image_id", "first"), place=("place", "first"),
+                   xpos=("xpos", "first"), ypos=("ypos", "first")))
     f.df = (priced.sort_values(["n", "price"], ascending=[False, True])
             .groupby(["dish", "restaurant", "year"], as_index=False)
             .first()
@@ -247,15 +308,22 @@ def main() -> None:
     print(f"  reference year: {CPI_REF_YEAR}")
 
     print("\n== step 6: export")
-    items = [{"id": int(r.id),
-              "dish": r.dish,
-              "restaurant": r.restaurant,
-              "year": int(r.year),
-              "price": float(r.price),
-              "price_today": float(r.price_today),
-              "image_url": IMAGE_URL.format(image_id=int(r.image_id))}
-             for r in f.df.itertuples()
-             if pd.notna(r.image_id)]
+    items = []
+    for r in f.df.itertuples():
+        if pd.isna(r.image_id) or pd.isna(r.xpos) or pd.isna(r.ypos):
+            continue
+        item = {"id": int(r.id),
+                "dish": r.dish,
+                "restaurant": r.restaurant,
+                "year": int(r.year),
+                "price": float(r.price),
+                "price_today": float(r.price_today),
+                "image_id": int(r.image_id),
+                "x": round(float(r.xpos), 4),
+                "y": round(float(r.ypos), 4)}
+        if r.place:
+            item["place"] = r.place          # only a third of menus record one
+        items.append(item)
 
     args.out.write_text(json.dumps(items, ensure_ascii=False,
                                    separators=(",", ":")) + "\n")
@@ -268,6 +336,7 @@ def main() -> None:
         "scope": args.scope,
         "cpi_reference_year": CPI_REF_YEAR,
         "items": len(items),
+        "with_place": sum(1 for i in items if "place" in i),
         "restaurants": int(f.df["restaurant"].nunique()),
         "dishes": int(f.df["dish"].nunique()),
         "year_range": [int(f.df["year"].min()), int(f.df["year"].max())],

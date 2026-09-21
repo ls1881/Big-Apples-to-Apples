@@ -24,10 +24,25 @@ the card you are betting against shows a single number. A pair is never dealt
 closer than 18% apart (`NEAR_TIE`), and never repeats a dish or a restaurant
 within a run.
 
-Play with the buttons, or the arrow keys. The dish on the left links out to
-the NYPL scan of the menu page it was printed on - the left card only, since
-the scan shows the prices and linking the card being guessed would hand over
-the answer. It opens in a new tab so a run is never lost to a stray click.
+Play with the buttons, or the arrow keys.
+
+### What is on a card
+
+Each card carries a clipping of the dish's own line, cut straight out of the
+scanned menu with IIIF using the position the archive recorded for it - the
+actual printed or handwritten words, not a stand-in photo. There are no
+photographs of the food or the restaurants anywhere in this dataset; NYPL
+digitised the menus, not the dining rooms.
+
+That clipping includes the printed price, so on the card being guessed it is
+blurred until the guess is in, then comes into focus with the price. For the
+same reason the dish links out to the full menu page on the left card only,
+where the price is already known. The link opens in a new tab so a run is
+never lost to a stray click.
+
+Under the restaurant sits the place, where the archive recorded one - a city,
+sometimes a street address, sometimes "En Route" for a dining car or an ocean
+liner. Only about 30% of menus have one, so most cards show none.
 
 ### Modes
 
@@ -104,14 +119,27 @@ new year's inflation figure lands.
 ### Item schema
 
 ```json
-{"id": 5, "dish": "St. Emilion", "restaurant": "La Noche Buena",
- "year": 1900, "price": 0.5, "price_today": 19.35,
- "image_url": "https://images.nypl.org/index.php?id=467274&t=w"}
+{
+ "id": 215,
+ "dish": "Puree of beans",
+ "restaurant": "Curry & Burlingame",
+ "place": "Chambers Street, NYC",
+ "year": 1901,
+ "price": 0.1,
+ "price_today": 3.87,
+ "image_id": 471199,
+ "x": 0.2086,
+ "y": 0.2607
+}
 ```
 
 `id` is the source `MenuItem.id`, so any card traces back to the archive.
-`image_url` points at the scan of the menu page the dish came from (the whole
-page, not the dish) — it is there for Phase 4.
+`image_id` identifies the scan of the menu page, and `x`/`y` are
+`MenuItem.xpos`/`ypos` - where on that page the dish was printed, as a
+fraction of the page. The front end builds two URLs from them: the whole page
+to link to, and an IIIF crop of the dish's own printed line to show on the
+card. `place` is present on about 30% of items; the archive simply does not
+record one for the rest.
 
 ### Notes on the source data
 

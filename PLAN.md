@@ -66,10 +66,12 @@
 - `id`
 - `dish`
 - `restaurant`
+- `place` (optional; only ~30% of menus record one)
 - `year`
 - `price`
 - `price_today`
-- `image_url` (optional)
+- `image_id` + `x` / `y` (replaced `image_url`: the front end builds both the
+  full-page link and an IIIF crop of the dish's own line from these)
 
 ## 5. Tech Stack
 - Python (pandas) for cleaning
@@ -104,6 +106,7 @@
 - [ ] Themed modes (oysters only, one decade, one restaurant)
 - [x] Era / decade filter (year range, endless mode)
 - [ ] Fun fact per restaurant
+- [x] A clipping of the dish's printed line on every card
 
 ## 7. Risks
 - Messy prices (units, currencies, typos)

@@ -18,6 +18,23 @@ const MIN_SPAN = 5;
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+/* Menu scans ------------------------------------------------------------- */
+
+const PAGE_URL = 'https://images.nypl.org/index.php?id={id}&t=w';
+
+/** NYPL serves the scans over IIIF, and MenuItem.xpos/ypos say where on the
+ *  page the dish was printed, so each card can show a clipping of its own
+ *  line rather than the whole page. */
+const CLIP_URL = 'https://iiif.nypl.org/iiif/2/{id}/pct:{x},{y},45,4.5/700,/0/default.jpg';
+
+const pageUrl = (card) => PAGE_URL.replace('{id}', card.image_id);
+
+function clipUrl(card) {
+  const x = Math.max(0, card.x * 100 - 3).toFixed(2);
+  const y = Math.max(0, card.y * 100 - 2).toFixed(2);
+  return CLIP_URL.replace('{id}', card.image_id).replace('{x}', x).replace('{y}', y);
+}
+
 const el = {
   board: document.getElementById('board'),
   left: document.getElementById('left'),
@@ -106,7 +123,7 @@ function showBest() {
 function linkDish(node, card) {
   const link = document.createElement('a');
   link.className = 'dish-link';
-  link.href = card.image_url;
+  link.href = pageUrl(card);
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   link.textContent = card.dish;          // never innerHTML; these come from a CSV
@@ -126,13 +143,34 @@ function paint(root, card,
   // surviving into a new game turns a correct first guess red.
   root.classList.remove('is-right', 'is-wrong');
   const dish = root.querySelector('.dish');
-  if (showLink && card.image_url) {
+  if (showLink) {
     linkDish(dish, card);
   } else {
     dish.textContent = card.dish;
   }
   root.querySelector('.restaurant').textContent = card.restaurant;
+  // Menu.place is recorded for only about a third of menus.
+  const place = root.querySelector('.place');
+  place.textContent = card.place || '';
+  place.hidden = !card.place;
   root.querySelector('.year').textContent = card.year;
+
+  // The clipping shows the printed line, price and all, so it stays blurred
+  // on the card being guessed until its price is out in the open anyway.
+  const clip = root.querySelector('.clip');
+  const img = clip.querySelector('img');
+  const src = clipUrl(card);
+  if (img.getAttribute('src') !== src) {
+    clip.classList.remove('is-failed');
+    // Keep the box either way, so a scan that will not load does not make
+    // this card a different height from the other one.
+    img.onerror = () => clip.classList.add('is-failed');
+    img.src = src;
+  }
+  clip.classList.toggle('is-covered', !showPrice);
+  img.alt = showPrice
+    ? `The line for ${card.dish} on the ${card.year} menu`
+    : '';
 
   const price = root.querySelector('.price');
   price.textContent = showPrice ? formatPrice(card.price) : '';
@@ -247,6 +285,7 @@ function setMode(mode) {
   el.modeDaily.setAttribute('aria-pressed', String(daily));
   el.modeEndless.setAttribute('aria-pressed', String(!daily));
   el.years.hidden = daily;
+  document.body.classList.toggle('is-endless', !daily);
   el.modeNote.textContent = daily
     ? `Today's menu - ${prettyDay(state.day)}. Everyone gets these same cards.`
     : 'A fresh shuffle every run. Set the years you want to play.';
