@@ -110,10 +110,19 @@ async function slideOver() {
   return () => moving.forEach(a => a.cancel());   // hold the end pose until repaint
 }
 
+/** Opening deal only: both slots are new, so both fade up. */
 function dealIn() {
   animate(el.left, [{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+  dealInRight();
+}
+
+/** Mid-run, only the incoming card is new. The left slot already shows the
+ *  card the player just guessed, sitting where the slide left it, so fading
+ *  it would blink content that never actually changed on screen. */
+function dealInRight() {
   animate(el.right, [{ opacity: 0, transform: 'translateX(24px)' },
                      { opacity: 1, transform: 'none' }], { duration: 320 });
+  el.right.style.opacity = '';   // the animation, if any, takes it from here
 }
 
 /* Play ------------------------------------------------------------------- */
@@ -162,9 +171,12 @@ async function advance() {
   state.left = state.right;
   state.right = draw(state.deck, state.left, state.streak);
   el.right.classList.remove('is-right', 'is-wrong');
+  // Hide the incoming card before it is painted, so releasing the slide
+  // cannot flash the new dish for a frame at full opacity.
+  if (!reducedMotion.matches) el.right.style.opacity = '0';
   render();
   if (release) release();
-  dealIn();
+  dealInRight();
   state.locked = false;
 }
 
