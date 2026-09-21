@@ -92,14 +92,40 @@ function showBest() {
 
 /* Rendering -------------------------------------------------------------- */
 
+/** Link the dish to the scan of the menu page it was printed on.
+ *
+ * Only ever the card whose price is already known: the scan shows the prices,
+ * so linking the card being guessed would hand over the answer. Opens in a new
+ * tab, since navigating away would throw the run away.
+ */
+function linkDish(node, card) {
+  const link = document.createElement('a');
+  link.className = 'dish-link';
+  link.href = card.image_url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = card.dish;          // never innerHTML; these come from a CSV
+  link.title = `See the ${card.year} menu from ${card.restaurant}`;
+  link.setAttribute('aria-label',
+    `${card.dish}. See the ${card.year} menu from ${card.restaurant}, opens in a new tab.`);
+  node.replaceChildren(link);
+}
+
 /** `price` shows the number on the menu; `fact` converts it to today's money.
  *  PLAN puts the conversion on the reveal only -- the card to beat shows one
  *  number, so there is no question which price is being compared. */
-function paint(root, card, { price: showPrice = false, fact: showFact = false } = {}) {
+function paint(root, card,
+               { price: showPrice = false, fact: showFact = false,
+                 link: showLink = false } = {}) {
   // Clear last round's verdict here, not at the call sites -- a stale is-wrong
   // surviving into a new game turns a correct first guess red.
   root.classList.remove('is-right', 'is-wrong');
-  root.querySelector('.dish').textContent = card.dish;
+  const dish = root.querySelector('.dish');
+  if (showLink && card.image_url) {
+    linkDish(dish, card);
+  } else {
+    dish.textContent = card.dish;
+  }
   root.querySelector('.restaurant').textContent = card.restaurant;
   root.querySelector('.year').textContent = card.year;
 
@@ -115,7 +141,7 @@ function paint(root, card, { price: showPrice = false, fact: showFact = false } 
 }
 
 function render() {
-  paint(el.left, state.left, { price: true });
+  paint(el.left, state.left, { price: true, link: true });
   paint(el.right, state.right);
   el.prompt.textContent = `Did ${state.right.dish} cost more or less `
     + `than ${formatPrice(state.left.price)}?`;

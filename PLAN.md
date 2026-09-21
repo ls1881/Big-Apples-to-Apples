@@ -99,7 +99,7 @@
 - [x] Mobile layout
 
 ### Phase 4: Stretch
-- [ ] Menu images (if URLs still resolve)
+- [x] Menu images - left card links to the scan (URLs still resolve)
 - [x] Daily seeded challenge (default mode)
 - [ ] Themed modes (oysters only, one decade, one restaurant)
 - [x] Era / decade filter (year range, endless mode)

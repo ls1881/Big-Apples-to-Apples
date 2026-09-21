@@ -24,7 +24,10 @@ the card you are betting against shows a single number. A pair is never dealt
 closer than 18% apart (`NEAR_TIE`), and never repeats a dish or a restaurant
 within a run.
 
-Play with the buttons, or the arrow keys.
+Play with the buttons, or the arrow keys. The dish on the left links out to
+the NYPL scan of the menu page it was printed on - the left card only, since
+the scan shows the prices and linking the card being guessed would hand over
+the answer. It opens in a new tab so a run is never lost to a stray click.
 
 ### Modes
 
