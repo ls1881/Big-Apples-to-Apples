@@ -68,7 +68,14 @@ rebuild, so nothing repeats mid-run.
 
 The card count updates live, and below 60 cards the range is refused rather
 than dealt, because the deck cannot keep finding fair pairs in a pool that
-small. The range is remembered (`baa:years`), but the mode is not - the daily
+small.
+
+Even above that floor a tight range can strain the deck, and the last thing it
+gives up is a price difference: when no card left satisfies any rule, the draw
+reshuffles rather than deal two dishes at the same price. Repeating a card
+sooner costs less than asking a question with no right answer. If two prices
+really are equal, `verdict` returns `tie` and the round counts as correct
+whichever button was pressed - "Both $0.25. That one is on the house." The range is remembered (`baa:years`), but the mode is not - the daily
 is always the front door.
 
 The range control is two native `input type="range"` elements stacked on one

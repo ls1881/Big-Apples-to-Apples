@@ -129,6 +129,9 @@ function relaxations(rule) {
     rule,
     { ...rule, minYears: 0, maxYears: 200 },            // any era
     { ...rule, minGap: NEAR_TIE, maxGap: 50, minYears: 0, maxYears: 200 },
+    // Last resort before giving up on the rules entirely: any two prices that
+    // are not the same number. A narrow year range can leave nothing else.
+    { minGap: 0, maxGap: Infinity, minYears: 0, maxYears: 200 },
   ];
 }
 
@@ -137,20 +140,40 @@ function relaxations(rule) {
  * `against`. Cards are consumed by swapping the chosen one down to the
  * cursor, so nothing repeats within a run.
  */
-export function draw(deck, against = null, streak = 0) {
-  if (deck.cursor >= deck.cards.length) {       // ran the deck out; start over
-    deck.cards = shuffle(deck.cards, deck.rng);
-    deck.cursor = 0;
-  }
-  if (!against) return take(deck, deck.cursor);
+function recycle(deck) {
+  deck.cards = shuffle(deck.cards, deck.rng);
+  deck.cursor = 0;
+}
 
+/** Index of the best card left for `against`, or -1 if none will do. */
+function findPartner(deck, against, streak) {
   const end = Math.min(deck.cards.length, deck.cursor + SCAN_LIMIT);
   for (const rule of relaxations(difficultyFor(streak))) {
     for (let i = deck.cursor; i < end; i++) {
-      if (matchesRule(deck.cards[i], against, rule)) return take(deck, i);
+      if (matchesRule(deck.cards[i], against, rule)) return i;
     }
   }
-  return take(deck, deck.cursor);               // nothing fair nearby; move on
+  // Even the distinct dish and restaurant have to go before the prices do: a
+  // pair the player can reason about matters more than a tidy-looking one.
+  for (let i = deck.cursor; i < end; i++) {
+    if (deck.cards[i].price !== against.price) return i;
+  }
+  return -1;
+}
+
+export function draw(deck, against = null, streak = 0) {
+  if (deck.cursor >= deck.cards.length) recycle(deck);   // ran the deck out
+  if (!against) return take(deck, deck.cursor);
+
+  let found = findPartner(deck, against, streak);
+  if (found < 0) {
+    // The tail of a small deck can hold nothing but cards at this very price.
+    // Reshuffling repeats a card sooner than it would have, which is a far
+    // smaller cost than asking the player a question with no right answer.
+    recycle(deck);
+    found = findPartner(deck, against, streak);
+  }
+  return take(deck, found >= 0 ? found : deck.cursor);   // a true dead heat
 }
 
 function take(deck, index) {
@@ -161,8 +184,15 @@ function take(deck, index) {
   return card;
 }
 
-/** What the right card actually did, relative to the left one. */
+/** What the right card actually did, relative to the left one.
+ *
+ * Two dishes really can have been printed at the same price, and in a narrow
+ * year range the deck can run out of anything better to deal. Saying so beats
+ * picking a side, which would mark one of two equally defensible answers
+ * wrong and end a run on a question with no right answer.
+ */
 export function verdict(left, right) {
+  if (right.price === left.price) return 'tie';
   return right.price > left.price ? 'higher' : 'lower';
 }
 

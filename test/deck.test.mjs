@@ -177,3 +177,41 @@ test('a narrow range still deals fair pairs, by relaxing the era rule', () => {
     left = right;
   }
 });
+
+/* Dead heats -------------------------------------------------------------- */
+
+test('verdict names a dead heat instead of picking a side', () => {
+  assert.equal(verdict(card(0.5), card(0.5)), 'tie');
+  assert.equal(verdict(card(0.25), card(1.0)), 'higher');
+  assert.equal(verdict(card(1.0), card(0.25)), 'lower');
+});
+
+test('a narrow year range stops dealing tied pairs', () => {
+  // The endless slider allows any range holding at least 60 cards, and the
+  // tightest of those used to fall through every rule to an arbitrary card.
+  const ranges = [];
+  for (let from = 1851; from <= 2000; from++) {
+    for (const span of [5, 8, 12]) {
+      const to = from + span;
+      if (to > 2005) continue;
+      const n = withinYears(items, from, to).length;
+      if (n >= 60 && n < 160) ranges.push([from, to]);
+    }
+  }
+  ranges.sort((a, b) => withinYears(items, a[0], a[1]).length
+                      - withinYears(items, b[0], b[1]).length);
+
+  let ties = 0, rounds = 0;
+  for (const [from, to] of ranges.slice(0, 25)) {
+    const deck = createDeck(withinYears(items, from, to), seeded(from));
+    let left = draw(deck);
+    for (let s = 0; s < 120; s++) {
+      const right = draw(deck, left, s);
+      rounds++;
+      if (right.price === left.price) ties++;
+      left = right;
+    }
+  }
+  assert.ok(rounds > 2000, 'not enough rounds to be meaningful');
+  assert.equal(ties, 0, `${ties} tied pairs dealt in ${rounds} rounds`);
+});

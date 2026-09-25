@@ -464,7 +464,10 @@ function guess(choice) {
   if (state.locked) return;
   state.locked = true;
 
-  const correct = choice === verdict(state.left, state.right);
+  // A dead heat cannot be guessed wrong, so it is never counted wrong.
+  const truth = verdict(state.left, state.right);
+  const tie = truth === 'tie';
+  const correct = tie || choice === truth;
   paint(el.right, state.right, { price: true, fact: true });
   el.right.classList.add(correct ? 'is-right' : 'is-wrong');
   animate(el.right.querySelector('.price'),
@@ -473,9 +476,13 @@ function guess(choice) {
   animate(el.right.querySelector('.fact'), [{ opacity: 0 }, { opacity: 1 }],
           { duration: 260, delay: 120, fill: 'backwards' });
 
-  el.status.textContent = `${correct ? 'Correct' : 'Wrong'} - ${state.right.dish} `
+  const lead = tie ? 'Dead heat' : (correct ? 'Correct' : 'Wrong');
+  el.status.textContent = `${lead} - ${state.right.dish} `
     + `was ${formatPrice(state.right.price)}, about `
     + `${formatPrice(state.right.price_today)} today.`;
+  el.prompt.textContent = tie
+    ? `Both ${formatPrice(state.left.price)}. That one is on the house.`
+    : el.prompt.textContent;
 
   if (correct) {
     state.streak += 1;
