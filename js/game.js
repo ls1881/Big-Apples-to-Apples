@@ -17,6 +17,34 @@ const MIN_CARDS = 60;
 const MIN_SPAN = 5;
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const darkSystem = window.matchMedia('(prefers-color-scheme: dark)');
+
+/* Theme ------------------------------------------------------------------ */
+
+const THEME_KEY = 'baa:theme';
+
+/** What is actually on screen: the player's choice, or the system's. */
+function activeTheme() {
+  const chosen = document.documentElement.dataset.theme;
+  if (chosen === 'light' || chosen === 'dark') return chosen;
+  return darkSystem.matches ? 'dark' : 'light';
+}
+
+function showTheme() {
+  const dark = activeTheme() === 'dark';
+  // The button shows where it will take you, not where you are.
+  el.theme.textContent = dark ? '\u263C' : '\u263D';       // sun : crescent
+  el.theme.setAttribute('aria-label',
+    dark ? 'Switch to the light theme' : 'Switch to the dark theme');
+  el.theme.title = el.theme.getAttribute('aria-label');
+}
+
+function toggleTheme() {
+  const next = activeTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  writeStore(THEME_KEY, next);
+  showTheme();
+}
 
 /* Menu scans ------------------------------------------------------------- */
 
@@ -62,6 +90,7 @@ const el = {
   rangeFill: document.getElementById('range-fill'),
   yearsCount: document.getElementById('years-count'),
   bestLabel: document.getElementById('best-label'),
+  theme: document.getElementById('theme-toggle'),
 };
 
 const state = {
@@ -620,15 +649,18 @@ async function share() {
 /* Start ------------------------------------------------------------------ */
 
 async function init() {
+  showTheme();
   try {
     const res = await fetch('data/items.json');
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     state.all = await res.json();            // raw items; buildDeck shuffles them
   } catch (err) {
-    // Most often: opened as a file:// URL, where fetch is blocked.
+    // Most often: opened as a file:// URL, where fetch is blocked. The theme
+    // switch is not part of the game, so it keeps working regardless.
     el.prompt.textContent = 'Could not load the menu data. Serve the folder '
       + 'over http (python3 -m http.server) and reload.';
     el.controls.hidden = true;
+    el.theme.addEventListener('click', toggleTheme);
     console.error(err);
     return;
   }
@@ -640,6 +672,11 @@ async function init() {
   el.lower.addEventListener('click', () => guess('lower'));
   el.again.addEventListener('click', newRound);
   el.share.addEventListener('click', share);
+  el.theme.addEventListener('click', toggleTheme);
+  // Until the player picks a side, follow the system if it changes.
+  darkSystem.addEventListener('change', () => {
+    if (!document.documentElement.dataset.theme) showTheme();
+  });
   el.modeDaily.addEventListener('click', () => setMode('daily'));
   el.modeEndless.addEventListener('click', () => setMode('endless'));
   document.addEventListener('keydown', (e) => {

@@ -116,7 +116,23 @@ gap) rather than repeating a card. Over 6,800 simulated draws that fallback
 fired 0.1% of the time.
 
 The endless best streak is kept in `localStorage` under `baa:best`, and the
-game still works where that is unavailable. Animations are skipped for anyone with
+game still works where that is unavailable.
+
+### Light and dark
+
+The page follows the system setting until the toggle in the top corner is
+used; after that the choice is remembered in `baa:theme` and wins over the
+system, so picking light on a device set to dark keeps light. The whole
+palette lives in custom properties on `:root`, and the dark values appear
+twice - once under `prefers-color-scheme`, once under `[data-theme="dark"]` -
+so an explicit choice can override the media query in both directions.
+
+A small inline script in `<head>` applies the stored choice before first
+paint; the module that runs the game is deferred, so leaving it to that would
+flash the light palette at a dark-theme player on every load. The scans are
+photographs of cream paper and glare out of a dark page, so `--clip-tune`
+dims them in dark mode - set on the clip's container rather than the image, so
+it composes with the blur on the card being guessed instead of replacing it. Animations are skipped for anyone with
 `prefers-reduced-motion` set.
 ## Data pipeline (Phase 1)
 

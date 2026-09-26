@@ -1,6 +1,11 @@
 /* Phase 2: a readable board. Animation and mobile refinements are Phase 3. */
 
+/* Light is the default palette. The dark values are repeated twice below --
+   once for the system preference, once for an explicit choice - so that a
+   player who picks light still gets light on a device set to dark. Every
+   colour is defined here first, so nothing is left undefined in either mode. */
 :root {
+  color-scheme: light;
   --paper: #f6f1e4;
   --card: #fffdf7;
   --ink: #2b2118;
@@ -8,6 +13,35 @@
   --rule: #d8cbb2;
   --right: #3f6b45;
   --wrong: #9b3226;
+  --clip-tune: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #15120d;
+    --card: #1f1a14;
+    --ink: #ece2d0;
+    --faded: #a5937b;
+    --rule: #3b332a;
+    --right: #7fb083;
+    --wrong: #dd8c7e;
+    /* The scans are photographs of cream paper; at full brightness they glare
+       out of a dark page. Dimmed, they sit in it. */
+    --clip-tune: brightness(0.82) contrast(1.04);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #15120d;
+  --card: #1f1a14;
+  --ink: #ece2d0;
+  --faded: #a5937b;
+  --rule: #3b332a;
+  --right: #7fb083;
+  --wrong: #dd8c7e;
+  --clip-tune: brightness(0.82) contrast(1.04);
 }
 
 * { box-sizing: border-box; }
@@ -24,6 +58,37 @@ body {
   font: 16px/1.5 Georgia, 'Iowan Old Style', 'Times New Roman', serif;
   text-align: center;
 }
+
+/* The title stays centred with the toggle beside it. A matching empty gap on
+   the left does the centring, so the title can never run under the button at
+   any width -- which absolute positioning could not promise. */
+.masthead-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.masthead-bar h1 { flex: 1 1 auto; min-width: 0; }
+.masthead-gap,
+.theme-toggle { flex: 0 0 2rem; }
+
+/* A preference, not part of the game, so it keeps to the corner. */
+.theme-toggle {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--faded);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.theme-toggle:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 .masthead h1 {
   margin: 0;
@@ -273,8 +338,10 @@ button:disabled:hover { background: var(--card); color: var(--ink); }
   margin: 0.7rem 0 0;
   height: 3rem;
   overflow: hidden;
-  background: var(--paper);
   border-radius: 1px;
+  /* On the container, so it composes with the blur on the covered card
+     instead of replacing it. */
+  filter: var(--clip-tune);
 }
 
 .clip img {
@@ -469,6 +536,12 @@ footer a { color: inherit; }
 
   .modes { margin-bottom: 0.4rem; }
   .mode { padding: 0.35rem 1rem; }
+
+  /* The toggle is taller than the title's line box, so it sets the height of
+     the top row; a little smaller here buys the board a few pixels. */
+  .masthead-gap,
+  .theme-toggle { flex-basis: 1.75rem; }
+  .theme-toggle { width: 1.75rem; height: 1.75rem; font-size: 0.85rem; }
   .years { margin-bottom: 0.6rem; }
 
   .board { gap: 0.3rem; }
